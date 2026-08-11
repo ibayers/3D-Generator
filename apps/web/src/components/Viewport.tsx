@@ -12,7 +12,7 @@ import {
   SUBTRACTION,
   INTERSECTION,
 } from "three-bvh-csg";
-import { buildPrimitiveGeometry } from "./geometry";
+import { buildPrimitiveGeometry, flattenNodes } from "./geometry";
 import { useSceneStore } from "../store/sceneStore";
 
 function ExtrudeGeometryMesh({
@@ -149,13 +149,14 @@ function NodeMesh({
 
 export default function Viewport() {
   const scene = useSceneStore((s) => s.scene);
+  const allNodes = useMemo(() => flattenNodes(scene.nodes), [scene]);
 
   return (
     <Canvas camera={{ position: [6, 5, 6], fov: 50 }}>
       <ambientLight intensity={0.6} />
       <directionalLight position={[10, 10, 5]} intensity={1} />
       {scene.nodes.map((node) => (
-        <NodeMesh key={node.id} node={node} allNodes={scene.nodes} />
+        <NodeMesh key={node.id} node={node} allNodes={allNodes} />
       ))}
       <OrbitControls makeDefault />
     </Canvas>

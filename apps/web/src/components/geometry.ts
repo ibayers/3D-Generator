@@ -30,3 +30,16 @@ export function buildPrimitiveGeometry(
       return null;
   }
 }
+
+// Recursively flatten scene tree so boolean operand lookup works for nested nodes.
+export function flattenNodes(nodes: SceneNode[]): SceneNode[] {
+  const out: SceneNode[] = [];
+  const walk = (ns: SceneNode[]) => {
+    for (const n of ns) {
+      out.push(n);
+      if (n.children.length) walk(n.children);
+    }
+  };
+  walk(nodes);
+  return out;
+}
