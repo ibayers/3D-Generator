@@ -6,7 +6,7 @@ import { applyArray } from './array.js';
 
 export function executeToolCall(
   scene: Scene,
-  call: ToolCall,
+  call: ToolCall
 ): ToolResult {
   switch (call.name) {
     case 'transform':
@@ -15,10 +15,5 @@ export function executeToolCall(
       return applySetMaterial(scene, call.input);
     case 'array':
       return applyArray(scene, call.input);
-    default:
-      return {
-        ok: false,
-        error: { code: 'TOOL_FAILED', message: `Unknown tool: ${(call as { name: string }).name}` },
-      };
   }
 }
