@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { executeToolCall } from './toolExecutor.js';
-import { sampleScene } from '../sampleScene.js';
-import type { Scene } from '../types.js';
+import { executeToolCall } from './toolExecutor';
+import { sampleScene } from '../sampleScene';
+import type { Scene } from '../types';
 
 describe('executeToolCall integration', () => {
   it('applies transform → set_material → array in sequence', () => {

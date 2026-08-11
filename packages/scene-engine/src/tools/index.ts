@@ -1,2 +1,2 @@
-export * from './types.js';
-export { executeToolCall } from './toolExecutor.js';
+export * from './types';
+export { executeToolCall } from './toolExecutor';

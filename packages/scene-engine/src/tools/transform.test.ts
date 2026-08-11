@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { applyTransform } from './transform.js';
-import { sampleScene } from '../sampleScene.js';
+import { applyTransform } from './transform';
+import { sampleScene } from '../sampleScene';
 
 describe('applyTransform', () => {
   it('updates position of target node immutably', () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { applyArray } from './array.js';
-import { sampleScene } from '../sampleScene.js';
+import { applyArray } from './array';
+import { sampleScene } from '../sampleScene';
 
 describe('applyArray', () => {
   it('clones node N times with offset positions', () => {

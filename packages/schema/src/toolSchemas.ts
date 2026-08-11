@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { vec3Schema } from './sceneSchema.js';
+import { vec3Schema } from './sceneSchema';
 
 export const transformToolInputSchema = z.object({
   nodeId: z.string(),

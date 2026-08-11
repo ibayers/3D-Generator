@@ -1,4 +1,4 @@
-import type { Scene, SceneNode } from '../types.js';
+import type { Scene, SceneNode } from '../types';
 
 export function findNode(scene: Scene, id: string): SceneNode | undefined {
   for (const node of scene.nodes) {

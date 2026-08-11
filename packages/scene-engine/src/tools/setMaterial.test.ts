@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { applySetMaterial } from './setMaterial.js';
-import { sampleScene } from '../sampleScene.js';
+import { applySetMaterial } from './setMaterial';
+import { sampleScene } from '../sampleScene';
 
 describe('applySetMaterial', () => {
   it('sets color on node with existing material', () => {

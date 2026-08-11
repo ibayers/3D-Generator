@@ -1,8 +1,8 @@
-import type { Scene } from '../types.js';
-import type { ToolCall, ToolResult } from './types.js';
-import { applyTransform } from './transform.js';
-import { applySetMaterial } from './setMaterial.js';
-import { applyArray } from './array.js';
+import type { Scene } from '../types';
+import type { ToolCall, ToolResult } from './types';
+import { applyTransform } from './transform';
+import { applySetMaterial } from './setMaterial';
+import { applyArray } from './array';
 
 export function executeToolCall(
   scene: Scene,

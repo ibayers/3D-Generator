@@ -1,2 +1,2 @@
-export * from './sceneSchema.js';
-export * from './toolSchemas.js';
+export * from './sceneSchema';
+export * from './toolSchemas';

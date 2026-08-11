@@ -1,7 +1,7 @@
 import { arrayToolInputSchema } from '@asset-studio/schema';
-import type { Scene, SceneNode } from '../types.js';
-import type { ToolResult } from './types.js';
-import { findNode } from '../scene/immutable.js';
+import type { Scene, SceneNode } from '../types';
+import type { ToolResult } from './types';
+import { findNode } from '../scene/immutable';
 
 export function applyArray(scene: Scene, input: unknown): ToolResult {
   const parsed = arrayToolInputSchema.safeParse(input);

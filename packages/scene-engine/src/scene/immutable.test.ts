@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { findNode, mapScene } from './immutable.js';
-import { sampleScene } from '../sampleScene.js';
+import { findNode, mapScene } from './immutable';
+import { sampleScene } from '../sampleScene';
 
 describe('findNode', () => {
   it('returns top-level node by id', () => {

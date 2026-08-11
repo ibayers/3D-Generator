@@ -1,7 +1,7 @@
 import { setMaterialToolInputSchema } from '@asset-studio/schema';
-import type { Scene } from '../types.js';
-import type { ToolResult } from './types.js';
-import { findNode, mapScene } from '../scene/immutable.js';
+import type { Scene } from '../types';
+import type { ToolResult } from './types';
+import { findNode, mapScene } from '../scene/immutable';
 
 export function applySetMaterial(
   scene: Scene,
