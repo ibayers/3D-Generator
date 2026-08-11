@@ -13,13 +13,15 @@ export const materialSchema = z.object({
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
 });
 
-// scene-engine SceneNodeType is the full primitive union + 'group'.
-// No separate 'mesh' wrapper — type carries the primitive name directly.
-export const sceneNodeTypeSchema = z.enum(['box', 'sphere', 'cylinder', 'plane', 'group']);
+// scene-engine SceneNodeType is the full primitive union + 'group' + 'extrude' + 'boolean'.
+export const sceneNodeTypeSchema = z.enum([
+  'box', 'sphere', 'cylinder', 'plane',
+  'group', 'extrude', 'boolean',
+]);
 
 export const sceneNodeParametersSchema = z.record(
   z.string(),
-  z.union([z.number(), z.array(z.number()), z.string()])
+  z.union([z.number(), z.array(z.number()), z.string(), z.boolean()])
 );
 
 // Lazy recursion for children

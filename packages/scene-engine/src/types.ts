@@ -10,13 +10,23 @@ export type Material = {
   color: string; // hex string e.g. "#8b5cf6"
 };
 
-// M1: primitive meshes + grouping. Template types (house/tree/road) added in M3.
 export type PrimitiveMeshType = "box" | "sphere" | "cylinder" | "plane";
 export type GroupType = "group";
-export type SceneNodeType = PrimitiveMeshType | GroupType;
+export type ExtrudeType = "extrude";
+export type BooleanType = "boolean";
+export type SceneNodeType =
+  | PrimitiveMeshType
+  | GroupType
+  | ExtrudeType
+  | BooleanType;
 
-// Loose by design for M1 — Zod schema in M2 will tighten this per-type.
-export type SceneNodeParameters = Record<string, number | number[] | string>;
+// Extended to support booleans (bevelEnabled) and string references (operand IDs)
+export type SceneNodeParameters = Record<
+  string,
+  number | number[] | string | boolean
+>;
+
+export type BooleanOperation = "union" | "subtract" | "intersect";
 
 export type SceneNode = {
   id: string;
