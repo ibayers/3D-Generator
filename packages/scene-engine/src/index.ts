@@ -1,2 +1,4 @@
-export * from "./types";
-export { sampleScene } from "./sampleScene";
+export * from './types.js';
+export * from './sampleScene.js';
+export * from './scene/immutable.js';
+export * from './tools/index.js';
