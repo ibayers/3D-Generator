@@ -54,4 +54,53 @@ describe('executeToolCall integration', () => {
     });
     expect(result.ok).toBe(false);
   });
+
+  it('creates an extrude node via tool call', () => {
+    const result = executeToolCall(sampleScene, {
+      name: 'extrude',
+      input: {
+        id: 'wall-test',
+        shape: [[0, 0], [1, 0], [1, 1], [0, 1]],
+        depth: 0.5,
+      },
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const node = result.scene.nodes.find((n) => n.id === 'wall-test');
+      expect(node?.type).toBe('extrude');
+      expect(node?.parameters.depth).toBe(0.5);
+    }
+  });
+
+  it('creates a boolean node referencing existing operands', () => {
+    const result = executeToolCall(sampleScene, {
+      name: 'boolean',
+      input: {
+        id: 'cut-test',
+        operation: 'subtract',
+        a: 'box-01',
+        b: 'sphere-01',
+      },
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const node = result.scene.nodes.find((n) => n.id === 'cut-test');
+      expect(node?.type).toBe('boolean');
+      expect(node?.parameters.a).toBe('box-01');
+      expect(node?.parameters.b).toBe('sphere-01');
+    }
+  });
+
+  it('rejects boolean when operand missing', () => {
+    const result = executeToolCall(sampleScene, {
+      name: 'boolean',
+      input: {
+        id: 'bad',
+        operation: 'union',
+        a: 'box-01',
+        b: 'nope',
+      },
+    });
+    expect(result.ok).toBe(false);
+  });
 });
