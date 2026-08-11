@@ -20,10 +20,11 @@ export type SceneNodeType =
   | ExtrudeType
   | BooleanType;
 
-// Extended to support booleans (bevelEnabled) and string references (operand IDs)
+// Extended to support booleans (bevelEnabled), string references (operand IDs),
+// and extrude shapes (2D point arrays)
 export type SceneNodeParameters = Record<
   string,
-  number | number[] | string | boolean
+  number | number[] | number[][] | string | boolean
 >;
 
 export type BooleanOperation = "union" | "subtract" | "intersect";
