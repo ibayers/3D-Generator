@@ -5,6 +5,14 @@ import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { useMemo } from "react";
 import type { SceneNode, Vec3 } from "@asset-studio/scene-engine";
+import {
+  Brush,
+  Evaluator,
+  ADDITION,
+  SUBTRACTION,
+  INTERSECTION,
+} from "three-bvh-csg";
+import { buildPrimitiveGeometry } from "./geometry";
 import { useSceneStore } from "../store/sceneStore";
 
 function ExtrudeGeometryMesh({
@@ -24,6 +32,46 @@ function ExtrudeGeometryMesh({
     s.lineTo(shape[0]![0], shape[0]![1]);
     return new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: false });
   }, [shape, depth]);
+  return <primitive object={geometry} attach="geometry" />;
+}
+
+const OP_MAP = {
+  union: ADDITION,
+  subtract: SUBTRACTION,
+  intersect: INTERSECTION,
+} as const;
+
+function BooleanGeometryMesh({
+  operation,
+  aId,
+  bId,
+  nodes,
+}: {
+  operation: keyof typeof OP_MAP;
+  aId: string;
+  bId: string;
+  nodes: SceneNode[];
+}) {
+  const geometry = useMemo(() => {
+    const aNode = nodes.find((n) => n.id === aId);
+    const bNode = nodes.find((n) => n.id === bId);
+    if (!aNode || !bNode) return null;
+
+    const geomA = buildPrimitiveGeometry(aNode);
+    const geomB = buildPrimitiveGeometry(bNode);
+    if (!geomA || !geomB) return null;
+
+    const brushA = new Brush(geomA);
+    brushA.updateMatrixWorld();
+    const brushB = new Brush(geomB);
+    brushB.updateMatrixWorld();
+
+    const evaluator = new Evaluator();
+    const result = evaluator.evaluate(brushA, brushB, OP_MAP[operation]);
+    return result.geometry;
+  }, [operation, aId, bId, nodes]);
+
+  if (!geometry) return null;
   return <primitive object={geometry} attach="geometry" />;
 }
 
@@ -63,14 +111,20 @@ function PrimitiveGeometry({ node }: { node: SceneNode }) {
   }
 }
 
-function NodeMesh({ node }: { node: SceneNode }) {
+function NodeMesh({
+  node,
+  allNodes,
+}: {
+  node: SceneNode;
+  allNodes: SceneNode[];
+}) {
   const { position, rotation, scale } = node.transform;
 
   if (node.type === "group") {
     return (
       <group position={position} rotation={rotation} scale={scale}>
         {node.children.map((child) => (
-          <NodeMesh key={child.id} node={child} />
+          <NodeMesh key={child.id} node={child} allNodes={allNodes} />
         ))}
       </group>
     );
@@ -78,7 +132,16 @@ function NodeMesh({ node }: { node: SceneNode }) {
 
   return (
     <mesh position={position} rotation={rotation} scale={scale}>
-      <PrimitiveGeometry node={node} />
+      {node.type === "boolean" ? (
+        <BooleanGeometryMesh
+          operation={node.parameters.operation as keyof typeof OP_MAP}
+          aId={node.parameters.a as string}
+          bId={node.parameters.b as string}
+          nodes={allNodes}
+        />
+      ) : (
+        <PrimitiveGeometry node={node} />
+      )}
       <meshStandardMaterial color={node.material?.color ?? "#888888"} />
     </mesh>
   );
@@ -92,7 +155,7 @@ export default function Viewport() {
       <ambientLight intensity={0.6} />
       <directionalLight position={[10, 10, 5]} intensity={1} />
       {scene.nodes.map((node) => (
-        <NodeMesh key={node.id} node={node} />
+        <NodeMesh key={node.id} node={node} allNodes={scene.nodes} />
       ))}
       <OrbitControls makeDefault />
     </Canvas>
