@@ -58,6 +58,10 @@ importers:
         version: 5.9.3
 
   packages/scene-engine:
+    dependencies:
+      '@asset-studio/schema':
+        specifier: workspace:*
+        version: link:../schema
     devDependencies:
       typescript:
         specifier: ^5.6.0
