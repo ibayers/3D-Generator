@@ -1,4 +1,4 @@
-export type ToolName = 'transform' | 'set_material' | 'array';
+export type ToolName = 'transform' | 'set_material' | 'array' | 'extrude' | 'boolean';
 
 export interface ToolCall {
   name: ToolName;
