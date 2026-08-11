@@ -1,10 +1,7 @@
 import { z } from 'zod';
 
-export const vec3Schema = z.object({
-  x: z.number(),
-  y: z.number(),
-  z: z.number(),
-});
+// Vec3 in scene-engine is a tuple [x, y, z] — schema must match.
+export const vec3Schema = z.tuple([z.number(), z.number(), z.number()]);
 
 export const transformSchema = z.object({
   position: vec3Schema,
@@ -16,23 +13,29 @@ export const materialSchema = z.object({
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
 });
 
-export const primitiveMeshTypeSchema = z.enum(['box', 'sphere', 'cylinder', 'plane']);
+// scene-engine SceneNodeType is the full primitive union + 'group'.
+// No separate 'mesh' wrapper — type carries the primitive name directly.
+export const sceneNodeTypeSchema = z.enum(['box', 'sphere', 'cylinder', 'plane', 'group']);
+
+export const sceneNodeParametersSchema = z.record(
+  z.string(),
+  z.union([z.number(), z.array(z.number()), z.string()])
+);
 
 // Lazy recursion for children
 export const sceneNodeSchema: z.ZodType<any> = z.lazy(() =>
   z.object({
     id: z.string(),
-    type: z.enum(['mesh', 'group']),
+    type: sceneNodeTypeSchema,
     name: z.string(),
     transform: transformSchema,
-    meshType: primitiveMeshTypeSchema.optional(),
+    parameters: sceneNodeParametersSchema,
     material: materialSchema.optional(),
-    parameters: z.record(z.string(), z.any()).optional(),
     children: z.array(sceneNodeSchema).default([]),
   })
 );
 
 export const sceneSchema = z.object({
-  version: z.literal('1.0'),
+  version: z.string(),
   nodes: z.array(sceneNodeSchema),
 });

@@ -1,22 +1,11 @@
 import { z } from 'zod';
+import { vec3Schema } from './sceneSchema.js';
 
 export const transformToolInputSchema = z.object({
   nodeId: z.string(),
-  position: z.object({
-    x: z.number(),
-    y: z.number(),
-    z: z.number(),
-  }).optional(),
-  rotation: z.object({
-    x: z.number(),
-    y: z.number(),
-    z: z.number(),
-  }).optional(),
-  scale: z.object({
-    x: z.number(),
-    y: z.number(),
-    z: z.number(),
-  }).optional(),
+  position: vec3Schema.optional(),
+  rotation: vec3Schema.optional(),
+  scale: vec3Schema.optional(),
 });
 
 export const setMaterialToolInputSchema = z.object({
@@ -27,9 +16,5 @@ export const setMaterialToolInputSchema = z.object({
 export const arrayToolInputSchema = z.object({
   nodeId: z.string(),
   count: z.number().int().min(1).max(100),
-  offset: z.object({
-    x: z.number(),
-    y: z.number(),
-    z: z.number(),
-  }),
+  offset: vec3Schema,
 });
