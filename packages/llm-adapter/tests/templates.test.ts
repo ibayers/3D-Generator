@@ -81,3 +81,77 @@ describe("applyCreateHouse", () => {
     }
   });
 });
+
+import { applyCreateRoad } from "../src/templates/createRoad";
+
+describe("applyCreateRoad", () => {
+  it("produces one extruded strip with the road id", () => {
+    const scene = { nodes: [] };
+    const result = applyCreateRoad(
+      {
+        id: "road-01",
+        path: [
+          [0, 0],
+          [10, 0],
+        ],
+        width: 2,
+        color: "#333333",
+      },
+      scene
+    );
+
+    expect(result.newNodes).toHaveLength(1);
+    const strip = result.newNodes[0];
+    expect(strip.id).toBe("road-01");
+    expect(strip.type).toBe("extrude");
+  });
+
+  it("builds a rectangle of width x path-length from a straight path", () => {
+    const scene = { nodes: [] };
+    const result = applyCreateRoad(
+      {
+        id: "r",
+        path: [
+          [0, 0],
+          [10, 0],
+        ],
+        width: 2,
+        color: "#111111",
+      },
+      scene
+    );
+    const strip = result.newNodes[0];
+    if (strip.type !== "extrude") throw new Error("expected extrude");
+    const shape = strip.parameters.shape as [number, number][];
+    expect(shape).toHaveLength(4);
+    const xs = shape.map((p) => p[0]);
+    const zs = shape.map((p) => p[1]);
+    expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo(10);
+    expect(Math.max(...zs) - Math.min(...zs)).toBeCloseTo(2);
+  });
+
+  it("thin extrude (depth 0.05) so the road sits flat on the ground", () => {
+    const scene = { nodes: [] };
+    const result = applyCreateRoad(
+      {
+        id: "r",
+        path: [
+          [0, 0],
+          [5, 0],
+        ],
+        width: 1,
+      },
+      scene
+    );
+    const strip = result.newNodes[0];
+    if (strip.type !== "extrude") throw new Error("expected extrude");
+    expect(strip.parameters.depth).toBeLessThanOrEqual(0.1);
+  });
+
+  it("throws when path has fewer than 2 points", () => {
+    const scene = { nodes: [] };
+    expect(() =>
+      applyCreateRoad({ id: "r", path: [[0, 0]], width: 1 }, scene)
+    ).toThrow(/at least 2 points/);
+  });
+});
