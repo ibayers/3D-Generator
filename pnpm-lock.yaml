@@ -10,6 +10,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@asset-studio/llm-adapter':
+        specifier: workspace:*
+        version: link:../../packages/llm-adapter
       '@asset-studio/scene-engine':
         specifier: workspace:^
         version: link:../../packages/scene-engine
