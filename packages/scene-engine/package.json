@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@asset-studio/llm-adapter": "workspace:*",
     "@asset-studio/schema": "workspace:*"
   },
   "devDependencies": {

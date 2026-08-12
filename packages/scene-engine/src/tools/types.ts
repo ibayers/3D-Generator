@@ -1,4 +1,11 @@
-export type ToolName = 'transform' | 'set_material' | 'array' | 'extrude' | 'boolean';
+export type ToolName =
+  | 'transform'
+  | 'set_material'
+  | 'array'
+  | 'extrude'
+  | 'boolean'
+  | 'create_house'
+  | 'create_road';
 
 export interface ToolCall {
   name: ToolName;

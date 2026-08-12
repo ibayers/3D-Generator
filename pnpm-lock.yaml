@@ -87,6 +87,9 @@ importers:
 
   packages/scene-engine:
     dependencies:
+      '@asset-studio/llm-adapter':
+        specifier: workspace:*
+        version: link:../llm-adapter
       '@asset-studio/schema':
         specifier: workspace:*
         version: link:../schema

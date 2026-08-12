@@ -33,3 +33,20 @@ export const booleanToolInputSchema = z.object({
   a: z.string(),
   b: z.string(),
 });
+
+export const createHouseToolInputSchema = z.object({
+  id: z.string(),
+  position: z.tuple([z.number(), z.number(), z.number()]),
+  size: z.tuple([z.number(), z.number(), z.number()]),
+  wallColor: z.string().optional(),
+  roofColor: z.string().optional(),
+});
+export type CreateHouseToolInput = z.infer<typeof createHouseToolInputSchema>;
+
+export const createRoadToolInputSchema = z.object({
+  id: z.string(),
+  path: z.array(z.tuple([z.number(), z.number()])),
+  width: z.number(),
+  color: z.string().optional(),
+});
+export type CreateRoadToolInput = z.infer<typeof createRoadToolInputSchema>;
