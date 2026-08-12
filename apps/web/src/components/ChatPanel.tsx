@@ -2,7 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useChatStore } from "../store/chatStore";
-import { useLlmStore } from "../store/llmStore";
+import { useLlmStore, type Provider } from "../store/llmStore";
+
+const PROVIDER_LABEL: Record<Provider, string> = {
+  claude: "Claude (Anthropic)",
+  glm: "GLM (Z.ai)",
+};
+
+const PROVIDER_PLACEHOLDER: Record<Provider, string> = {
+  claude: "sk-ant-...",
+  glm: "zai-... (your Z.ai api key)",
+};
 
 export default function ChatPanel() {
   const messages = useChatStore((s) => s.messages);
@@ -10,9 +20,19 @@ export default function ChatPanel() {
   const lastError = useChatStore((s) => s.lastError);
   const sendPrompt = useChatStore((s) => s.sendPrompt);
 
+  const provider = useLlmStore((s) => s.provider);
   const apiKey = useLlmStore((s) => s.apiKey);
-  const setApiKey = useLlmStore((s) => s.setApiKey);
+  const setProvider = useLlmStore((s) => s.setProvider);
+  const setClaudeApiKey = useLlmStore((s) => s.setClaudeApiKey);
+  const setGlmApiKey = useLlmStore((s) => s.setGlmApiKey);
+  const clearClaudeApiKey = useLlmStore((s) => s.clearClaudeApiKey);
+  const clearGlmApiKey = useLlmStore((s) => s.clearGlmApiKey);
   const hydrate = useLlmStore((s) => s.hydrateFromStorage);
+
+  // Read both keys at render time so the key form knows whether the active
+  // provider has a key stored.
+  const claudeApiKey = useLlmStore((s) => s.claudeApiKey);
+  const glmApiKey = useLlmStore((s) => s.glmApiKey);
 
   const [input, setInput] = useState("");
   const [keyInput, setKeyInput] = useState("");
@@ -29,6 +49,32 @@ export default function ChatPanel() {
     await sendPrompt(prompt);
   };
 
+  const hasActiveKey = Boolean(apiKey);
+
+  const handleSaveKey = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = keyInput.trim();
+    if (!trimmed) return;
+    if (provider === "glm") {
+      setGlmApiKey(trimmed);
+    } else {
+      setClaudeApiKey(trimmed);
+    }
+    setKeyInput("");
+  };
+
+  const handleClearKey = () => {
+    if (provider === "glm") {
+      clearGlmApiKey();
+    } else {
+      clearClaudeApiKey();
+    }
+  };
+
+  const handleProviderChange = (next: Provider) => {
+    if (next !== provider) setProvider(next);
+  };
+
   return (
     <aside
       style={{
@@ -43,25 +89,42 @@ export default function ChatPanel() {
         height: "100vh",
       }}
     >
-      <h2 style={{ margin: 0, fontSize: 16 }}>AI Studio</h2>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <h2 style={{ margin: 0, fontSize: 16 }}>AI Studio</h2>
+        <div style={{ display: "flex", gap: 4, fontSize: 11 }}>
+          {(Object.keys(PROVIDER_LABEL) as Provider[]).map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => handleProviderChange(p)}
+              style={{
+                padding: "4px 8px",
+                borderRadius: 4,
+                border: provider === p ? "1px solid #4488ff" : "1px solid #333",
+                background: provider === p ? "#1a2a44" : "transparent",
+                color: provider === p ? "#eee" : "#888",
+                cursor: "pointer",
+              }}
+            >
+              {PROVIDER_LABEL[p]}
+            </button>
+          ))}
+        </div>
+      </div>
 
-      {!apiKey ? (
+      {!hasActiveKey ? (
         <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            setApiKey(keyInput.trim());
-            setKeyInput("");
-          }}
+          onSubmit={handleSaveKey}
           style={{ display: "flex", flexDirection: "column", gap: 8 }}
         >
           <label style={{ fontSize: 12, color: "#aaa" }}>
-            Anthropic API key (stored in localStorage)
+            {PROVIDER_LABEL[provider]} API key (stored in localStorage)
           </label>
           <input
             type="password"
             value={keyInput}
             onChange={(e) => setKeyInput(e.target.value)}
-            placeholder="sk-ant-..."
+            placeholder={PROVIDER_PLACEHOLDER[provider]}
             style={{
               padding: 8,
               borderRadius: 4,
@@ -72,33 +135,43 @@ export default function ChatPanel() {
           />
           <button
             type="submit"
+            disabled={!keyInput.trim()}
             style={{
               padding: 8,
               borderRadius: 4,
               border: "none",
-              background: "#4488ff",
+              background: keyInput.trim() ? "#4488ff" : "#333",
               color: "white",
-              cursor: "pointer",
+              cursor: keyInput.trim() ? "pointer" : "default",
             }}
           >
-            Save key
+            Save {PROVIDER_LABEL[provider]} key
           </button>
         </form>
       ) : (
-        <button
-          onClick={() => useLlmStore.getState().clearApiKey()}
-          style={{
-            padding: 6,
-            borderRadius: 4,
-            border: "1px solid #333",
-            background: "transparent",
-            color: "#aaa",
-            cursor: "pointer",
-            fontSize: 12,
-          }}
-        >
-          Clear API key
-        </button>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12 }}>
+          <div style={{ color: "#888" }}>
+            {PROVIDER_LABEL[provider]} key active
+            {provider === "claude" && glmApiKey && " · GLM key also saved"}
+            {provider === "glm" && claudeApiKey && " · Claude key also saved"}
+          </div>
+          <button
+            type="button"
+            onClick={handleClearKey}
+            style={{
+              padding: 6,
+              borderRadius: 4,
+              border: "1px solid #333",
+              background: "transparent",
+              color: "#aaa",
+              cursor: "pointer",
+              fontSize: 12,
+              alignSelf: "flex-start",
+            }}
+          >
+            Clear {PROVIDER_LABEL[provider]} key
+          </button>
+        </div>
       )}
 
       <div
@@ -151,7 +224,7 @@ export default function ChatPanel() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Build a house at origin"
-          disabled={!apiKey || status === "thinking"}
+          disabled={!hasActiveKey || status === "thinking"}
           style={{
             flex: 1,
             padding: 8,
@@ -163,7 +236,7 @@ export default function ChatPanel() {
         />
         <button
           type="submit"
-          disabled={!apiKey || status === "thinking" || !input.trim()}
+          disabled={!hasActiveKey || status === "thinking" || !input.trim()}
           style={{
             padding: "8px 16px",
             borderRadius: 4,

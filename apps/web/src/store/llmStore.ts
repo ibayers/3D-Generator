@@ -21,9 +21,6 @@ interface LlmState {
   clearClaudeApiKey: () => void;
   clearGlmApiKey: () => void;
   hydrateFromStorage: () => void;
-  /** Legacy aliases — removed after GLM-4 updates ChatPanel. */
-  setApiKey: (key: string) => void;
-  clearApiKey: () => void;
 }
 
 function readKey(storageKey: string): string {
@@ -104,6 +101,4 @@ export const useLlmStore = create<LlmState>((set, get) => ({
       apiKey: activeKey(provider, claudeApiKey, glmApiKey),
     });
   },
-  setApiKey: (key) => get().setClaudeApiKey(key),
-  clearApiKey: () => get().clearClaudeApiKey(),
 }));
