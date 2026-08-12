@@ -186,8 +186,10 @@ export default function ChatPanel() {
         }}
       >
         {messages.length === 0 && (
-          <div style={{ color: "#666" }}>
-            Ask the assistant to build something.
+          <div style={{ color: hasActiveKey ? "#888" : "#ff9966" }}>
+            {hasActiveKey
+              ? "Ask the assistant to build something."
+              : `⬆ Paste your ${PROVIDER_LABEL[provider]} API key above first, then type a prompt below.`}
           </div>
         )}
         {messages.map((m, i) => (
@@ -223,8 +225,12 @@ export default function ChatPanel() {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Build a house at origin"
-          disabled={!hasActiveKey || status === "thinking"}
+          placeholder={
+            hasActiveKey
+              ? "Build a house at origin"
+              : `Type after pasting your ${PROVIDER_LABEL[provider]} key above`
+          }
+          disabled={status === "thinking"}
           style={{
             flex: 1,
             padding: 8,
@@ -237,13 +243,20 @@ export default function ChatPanel() {
         <button
           type="submit"
           disabled={!hasActiveKey || status === "thinking" || !input.trim()}
+          title={!hasActiveKey ? "Paste your API key above first" : undefined}
           style={{
             padding: "8px 16px",
             borderRadius: 4,
             border: "none",
-            background: "#4488ff",
+            background:
+              !hasActiveKey || status === "thinking" || !input.trim()
+                ? "#333"
+                : "#4488ff",
             color: "white",
-            cursor: "pointer",
+            cursor:
+              !hasActiveKey || status === "thinking" || !input.trim()
+                ? "not-allowed"
+                : "pointer",
           }}
         >
           Send
