@@ -5,15 +5,28 @@ import { useLlmStore } from './llmStore';
 import { useSceneStore } from './sceneStore';
 import {
   createClaudeAdapter,
+  createGLMAdapter,
   runWithRetry,
   TOOL_DEFINITIONS,
   SYSTEM_PROMPT,
   type ChatMessage,
+  type LLMAdapter,
 } from '@asset-studio/llm-adapter';
-import type { ToolCall } from '@asset-studio/scene-engine';
 
-const CLAUDE_MODEL = 'claude-sonnet-4-6';
 const MAX_RETRIES = 2;
+
+const MODELS: Record<string, string> = {
+  claude: 'claude-sonnet-4-6',
+  glm: 'glm-5.2',
+};
+
+function createAdapter(provider: string, apiKey: string): LLMAdapter {
+  const model = MODELS[provider] ?? MODELS.claude!;
+  if (provider === 'glm') {
+    return createGLMAdapter({ apiKey, model, tools: TOOL_DEFINITIONS });
+  }
+  return createClaudeAdapter({ apiKey, model, tools: TOOL_DEFINITIONS });
+}
 
 interface ChatState {
   messages: ChatMessage[];
@@ -29,12 +42,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
   lastError: null,
   reset: () => set({ messages: [], status: 'idle', lastError: null }),
   sendPrompt: async (prompt) => {
-    const apiKey = useLlmStore.getState().apiKey;
+    const llm = useLlmStore.getState();
+    const apiKey = llm.apiKey;
     if (!apiKey) {
+      const providerLabel =
+        llm.provider === 'glm' ? 'Z.ai (GLM)' : 'Anthropic (Claude)';
       set({
         status: 'error',
-        lastError:
-          'Missing API key. Open settings and paste your Anthropic API key.',
+        lastError: `Missing API key for ${providerLabel}. Paste your key in the panel above.`,
       });
       return;
     }
@@ -46,25 +61,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({ status: 'thinking', lastError: null });
 
     try {
-      const adapter = createClaudeAdapter({
-        apiKey,
-        model: CLAUDE_MODEL,
-        tools: TOOL_DEFINITIONS,
-      });
+      const adapter = createAdapter(llm.provider, apiKey);
 
       const result = await runWithRetry({
         adapter,
         systemPrompt: SYSTEM_PROMPT,
         userPrompt: userPayload,
         tools: TOOL_DEFINITIONS,
-        applyToolCall: (name, input) => {
-          // Orchestrator hands us `name: string`; scene-engine's ToolCall
-          // narrows name to a ToolName union. The runtime value is one of
-          // the union members because TOOL_DEFINITIONS constrains Claude.
-          const call = { name, input } as ToolCall;
-          const res = sceneStore.applyToolCall(call);
-          return Promise.resolve(res);
-        },
+        applyToolCall: (name, input) =>
+          Promise.resolve(
+            sceneStore.applyToolCall({ name, input } as never),
+          ),
         maxRetries: MAX_RETRIES,
       });
 
