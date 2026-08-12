@@ -2,48 +2,108 @@
 
 import { create } from 'zustand';
 
-const STORAGE_KEY = 'asset-studio:anthropic-api-key';
+export type Provider = 'claude' | 'glm';
+
+const CLAUDE_KEY_STORAGE = 'asset-studio:anthropic-api-key';
+const GLM_KEY_STORAGE = 'asset-studio:glm-api-key';
+const PROVIDER_STORAGE = 'asset-studio:provider';
+const LEGACY_KEY_STORAGE = 'asset-studio:anthropic-api-key';
 
 interface LlmState {
+  provider: Provider;
+  claudeApiKey: string;
+  glmApiKey: string;
+  /** Derived: returns the active provider's key. */
   apiKey: string;
+  setProvider: (provider: Provider) => void;
+  setClaudeApiKey: (key: string) => void;
+  setGlmApiKey: (key: string) => void;
+  clearClaudeApiKey: () => void;
+  clearGlmApiKey: () => void;
+  hydrateFromStorage: () => void;
+  /** Legacy aliases — removed after GLM-4 updates ChatPanel. */
   setApiKey: (key: string) => void;
   clearApiKey: () => void;
-  hydrateFromStorage: () => void;
 }
 
-function readStorage(): string {
+function readKey(storageKey: string): string {
   if (typeof window === 'undefined') return '';
   try {
-    return window.localStorage.getItem(STORAGE_KEY) ?? '';
+    return window.localStorage.getItem(storageKey) ?? '';
   } catch {
     return '';
   }
 }
 
-function writeStorage(key: string): void {
+function writeKey(storageKey: string, key: string): void {
   if (typeof window === 'undefined') return;
   try {
     if (key) {
-      window.localStorage.setItem(STORAGE_KEY, key);
+      window.localStorage.setItem(storageKey, key);
     } else {
-      window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem(storageKey);
     }
   } catch {
     // ignore quota / privacy errors
   }
 }
 
-export const useLlmStore = create<LlmState>((set) => ({
+function readProvider(): Provider {
+  if (typeof window === 'undefined') return 'claude';
+  try {
+    const v = window.localStorage.getItem(PROVIDER_STORAGE);
+    return v === 'glm' ? 'glm' : 'claude';
+  } catch {
+    return 'claude';
+  }
+}
+
+function writeProvider(provider: Provider): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(PROVIDER_STORAGE, provider);
+  } catch {
+    // ignore
+  }
+}
+
+function activeKey(provider: Provider, claudeKey: string, glmKey: string): string {
+  return provider === 'glm' ? glmKey : claudeKey;
+}
+
+export const useLlmStore = create<LlmState>((set, get) => ({
+  provider: 'claude',
+  claudeApiKey: '',
+  glmApiKey: '',
   apiKey: '',
-  setApiKey: (key) => {
-    writeStorage(key);
-    set({ apiKey: key });
+  setProvider: (provider) => {
+    writeProvider(provider);
+    const { claudeApiKey, glmApiKey } = get();
+    set({ provider, apiKey: activeKey(provider, claudeApiKey, glmApiKey) });
   },
-  clearApiKey: () => {
-    writeStorage('');
-    set({ apiKey: '' });
+  setClaudeApiKey: (key) => {
+    writeKey(CLAUDE_KEY_STORAGE, key);
+    const { provider, glmApiKey } = get();
+    set({ claudeApiKey: key, apiKey: activeKey(provider, key, glmApiKey) });
   },
+  setGlmApiKey: (key) => {
+    writeKey(GLM_KEY_STORAGE, key);
+    const { provider, claudeApiKey } = get();
+    set({ glmApiKey: key, apiKey: activeKey(provider, claudeApiKey, key) });
+  },
+  clearClaudeApiKey: () => get().setClaudeApiKey(''),
+  clearGlmApiKey: () => get().setGlmApiKey(''),
   hydrateFromStorage: () => {
-    set({ apiKey: readStorage() });
+    const claudeApiKey = readKey(CLAUDE_KEY_STORAGE) || readKey(LEGACY_KEY_STORAGE);
+    const glmApiKey = readKey(GLM_KEY_STORAGE);
+    const provider = readProvider();
+    set({
+      claudeApiKey,
+      glmApiKey,
+      provider,
+      apiKey: activeKey(provider, claudeApiKey, glmApiKey),
+    });
   },
+  setApiKey: (key) => get().setClaudeApiKey(key),
+  clearApiKey: () => get().clearClaudeApiKey(),
 }));
