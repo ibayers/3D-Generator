@@ -5,7 +5,8 @@ export type ToolName =
   | 'extrude'
   | 'boolean'
   | 'create_house'
-  | 'create_road';
+  | 'create_road'
+  | 'create_tree';
 
 export interface ToolCall {
   name: ToolName;

@@ -5,10 +5,15 @@ import { applySetMaterial } from './setMaterial';
 import { applyArray } from './array';
 import { applyExtrude } from './extrude';
 import { applyBoolean } from './boolean';
-import { applyCreateHouse, applyCreateRoad } from '@asset-studio/llm-adapter';
+import {
+  applyCreateHouse,
+  applyCreateRoad,
+  applyCreateTree,
+} from '@asset-studio/llm-adapter';
 import {
   createHouseToolInputSchema,
   createRoadToolInputSchema,
+  createTreeToolInputSchema,
 } from '@asset-studio/schema';
 
 // ponytail: templates emit deterministic IDs from input.id, so a retry or
@@ -64,6 +69,26 @@ export function executeToolCall(
       return {
         ok: true,
         scene: { ...scene, nodes: upsertNodes(scene.nodes, result.newNodes) },
+      };
+    }
+    case 'create_tree': {
+      const parsed = createTreeToolInputSchema.safeParse(call.input);
+      if (!parsed.success) {
+        return {
+          ok: false,
+          error: { code: 'INVALID_INPUT', message: parsed.error.message },
+        };
+      }
+      const result = applyCreateTree(parsed.data, scene);
+      // ponytail: tree variants emit different node counts (conifer 4,
+      // broadleaf 3), so exact-id upsert would orphan e.g. canopy-3 on a
+      // conifer→broadleaf switch. All template node ids are `${id}-`-prefixed,
+      // so replace by prefix instead.
+      const prefix = `${parsed.data.id}-`;
+      const kept = scene.nodes.filter((n) => !n.id.startsWith(prefix));
+      return {
+        ok: true,
+        scene: { ...scene, nodes: [...kept, ...result.newNodes] },
       };
     }
     default:

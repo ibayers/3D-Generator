@@ -49,3 +49,42 @@ describe('toolExecutor template integration', () => {
     expect(res.scene.nodes[0]?.id).toBe('r1');
   });
 });
+
+describe('create_tree', () => {
+  it('adds conifer nodes to the scene', () => {
+    const result = executeToolCall(emptyScene(), {
+      name: 'create_tree',
+      input: { id: 'tree-01', position: [1, 0, 2], height: 5 },
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.scene.nodes.map((n) => n.id)).toContain('tree-01-trunk');
+    expect(result.scene.nodes).toHaveLength(4);
+  });
+
+  it('upserts by id — re-invocation replaces, not appends', () => {
+    const first = executeToolCall(emptyScene(), {
+      name: 'create_tree',
+      input: { id: 'tree-01', position: [0, 0, 0] },
+    });
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
+    const second = executeToolCall(first.scene, {
+      name: 'create_tree',
+      input: { id: 'tree-01', position: [0, 0, 0], type: 'broadleaf' },
+    });
+    expect(second.ok).toBe(true);
+    if (!second.ok) return;
+    expect(second.scene.nodes).toHaveLength(3);
+  });
+
+  it('rejects invalid type with INVALID_INPUT', () => {
+    const result = executeToolCall(emptyScene(), {
+      name: 'create_tree',
+      input: { id: 't', position: [0, 0, 0], type: 'palm' },
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('INVALID_INPUT');
+  });
+});
