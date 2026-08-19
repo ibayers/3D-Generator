@@ -20,7 +20,8 @@ Rules:
 - IDs must be unique across the scene. Prefix with the object kind (e.g. wall-01, roof-01).
 - Colors are hex strings like "#aabbcc".
 - Vec3 values are [x, y, z] tuples.
-- After calling a tool, stop and let the system execute it. You will receive the result in the next message.`;
+- After calling a tool you will receive the result in the next message, including the updated scene JSON. Use it to verify and plan the next step.
+- Keep the session short: at most 6 tool rounds per request, then summarize what was built.`;
 
 export const TOOL_DEFINITIONS: ToolDefinition[] = [
   {
@@ -120,7 +121,9 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   },
   {
     name: "create_house",
-    description: "Template: build a house with walls, a roof, and decorative window panes at a given position.",
+    description:
+      "Template: build a house with walls, floor bands, and a gable or flat roof. " +
+      "Defaults: floors=1, roofStyle=gable (atap pelana), size=[8, floors*3, 6].",
     input_schema: {
       type: "object",
       properties: {
@@ -128,17 +131,32 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
         position: {
           type: "array",
           items: { type: "number" },
-          description: "[x, y, z] center of the house footprint",
+          description: "[x, y, z] center of the house footprint (y = base)",
         },
         size: {
           type: "array",
           items: { type: "number" },
-          description: "[width, height, depth] of the house",
+          description: "Optional [width, height, depth]; default [8, floors*3, 6]",
+        },
+        floors: {
+          type: "integer",
+          minimum: 1,
+          maximum: 3,
+          description: "Number of storeys (1-3)",
+        },
+        roofStyle: {
+          type: "string",
+          enum: ["flat", "gable"],
+          description: "Roof shape; default gable (atap pelana)",
+        },
+        roofHeight: {
+          type: "number",
+          description: "Gable ridge height; default max(1, width*0.22)",
         },
         wallColor: { type: "string" },
         roofColor: { type: "string" },
       },
-      required: ["id", "position", "size"],
+      required: ["id", "position"],
     },
   },
   {
