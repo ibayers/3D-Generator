@@ -1,267 +1,277 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useChatStore } from "../store/chatStore";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { MODELS, useChatStore, type ChatEntry } from "../store/chatStore";
 import { useLlmStore, type Provider } from "../store/llmStore";
+import { useSceneStore } from "../store/sceneStore";
 
 const PROVIDER_LABEL: Record<Provider, string> = {
-  claude: "Claude (Anthropic)",
+  claude: "Claude",
   glm: "GLM (Z.ai)",
+  n9router: "9Router",
 };
 
 const PROVIDER_PLACEHOLDER: Record<Provider, string> = {
-  claude: "sk-ant-...",
-  glm: "zai-... (your Z.ai api key)",
+  claude: "sk-ant-…",
+  glm: "kunci Z.ai…",
+  n9router: "kunci 9Router…",
 };
 
+const STARTER_CHIPS = [
+  "Buat rumah 2 lantai dengan atap pelana",
+  "Buat jalan sepanjang 8 meter",
+  "Ubah material objek pertama jadi hijau",
+];
+
+function paramValue(v: unknown): string {
+  if (typeof v === "string") return v;
+  return JSON.stringify(v);
+}
+
+function ToolCard({ entry }: { entry: Extract<ChatEntry, { kind: "tool" }> }) {
+  const historyLen = useSceneStore((s) => s.history.length);
+  const json = JSON.stringify(
+    entry.error
+      ? { tool: entry.name, params: entry.input, error: entry.error }
+      : { tool: entry.name, params: entry.input },
+    null,
+    1,
+  );
+
+  return (
+    <div className="tcard">
+      <div className="tc-h">
+        <span className={`dot ${entry.ok ? "ok" : "err"}`} />
+        <span className="tc-tool">{entry.name}</span>
+        <span className="tc-ms num">{`${entry.ms} ms`}</span>
+      </div>
+      <div className="tc-params">
+        {Object.entries(entry.input).map(([k, v]) => (
+          <span className="pv" key={k}>{`${k}: ${paramValue(v)}`}</span>
+        ))}
+      </div>
+      {entry.error && <div className="tc-err">{entry.error}</div>}
+      <details className="tc-json">
+        <summary>json</summary>
+        <pre>{json}</pre>
+      </details>
+      {entry.ok && (
+        <div className="tc-foot">{`✓ berhasil · scene → snapshot #${historyLen}`}</div>
+      )}
+    </div>
+  );
+}
+
+function EntryView({ entry }: { entry: ChatEntry }): ReactNode {
+  switch (entry.kind) {
+    case "user":
+      return <div className="msg-u">{entry.text}</div>;
+    case "assistant":
+      return <div className="msg-a">{entry.text}</div>;
+    case "note":
+      return <div className="note">{entry.text}</div>;
+    case "error":
+      return <div className="msg-err">{entry.text}</div>;
+    case "tool":
+      return <ToolCard entry={entry} />;
+  }
+}
+
 export default function ChatPanel() {
-  const messages = useChatStore((s) => s.messages);
+  const entries = useChatStore((s) => s.entries);
   const status = useChatStore((s) => s.status);
-  const lastError = useChatStore((s) => s.lastError);
   const sendPrompt = useChatStore((s) => s.sendPrompt);
 
   const provider = useLlmStore((s) => s.provider);
   const apiKey = useLlmStore((s) => s.apiKey);
-  const setProvider = useLlmStore((s) => s.setProvider);
+  const hydrate = useLlmStore((s) => s.hydrateFromStorage);
   const setClaudeApiKey = useLlmStore((s) => s.setClaudeApiKey);
   const setGlmApiKey = useLlmStore((s) => s.setGlmApiKey);
+  const setN9RouterApiKey = useLlmStore((s) => s.setN9RouterApiKey);
   const clearClaudeApiKey = useLlmStore((s) => s.clearClaudeApiKey);
   const clearGlmApiKey = useLlmStore((s) => s.clearGlmApiKey);
-  const hydrate = useLlmStore((s) => s.hydrateFromStorage);
+  const clearN9RouterApiKey = useLlmStore((s) => s.clearN9RouterApiKey);
 
-  // Read both keys at render time so the key form knows whether the active
-  // provider has a key stored.
-  const claudeApiKey = useLlmStore((s) => s.claudeApiKey);
-  const glmApiKey = useLlmStore((s) => s.glmApiKey);
+  const scene = useSceneStore((s) => s.scene);
 
   const [input, setInput] = useState("");
   const [keyInput, setKeyInput] = useState("");
+  const threadRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim()) return;
-    const prompt = input;
-    setInput("");
-    await sendPrompt(prompt);
-  };
+  useEffect(() => {
+    const el = threadRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+  }, [entries.length, status]);
 
-  const hasActiveKey = Boolean(apiKey);
+  const thinking = status === "thinking";
+  const hasUserEntry = entries.some((e) => e.kind === "user");
+  const tokenEstimate = Math.round(JSON.stringify(scene).length / 4);
+
+  const submit = () => {
+    const text = input.trim();
+    if (!text || thinking) return;
+    setInput("");
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
+    void sendPrompt(text);
+  };
 
   const handleSaveKey = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = keyInput.trim();
     if (!trimmed) return;
-    if (provider === "glm") {
-      setGlmApiKey(trimmed);
-    } else {
-      setClaudeApiKey(trimmed);
-    }
+    if (provider === "glm") setGlmApiKey(trimmed);
+    else if (provider === "n9router") setN9RouterApiKey(trimmed);
+    else setClaudeApiKey(trimmed);
     setKeyInput("");
   };
 
   const handleClearKey = () => {
-    if (provider === "glm") {
-      clearGlmApiKey();
-    } else {
-      clearClaudeApiKey();
-    }
-  };
-
-  const handleProviderChange = (next: Provider) => {
-    if (next !== provider) setProvider(next);
+    if (provider === "glm") clearGlmApiKey();
+    else if (provider === "n9router") clearN9RouterApiKey();
+    else clearClaudeApiKey();
   };
 
   return (
-    <aside
-      style={{
-        width: 360,
-        padding: 16,
-        borderLeft: "1px solid #222",
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-        background: "#0e0e10",
-        color: "#eee",
-        height: "100vh",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <h2 style={{ margin: 0, fontSize: 16 }}>AI Studio</h2>
-        <div style={{ display: "flex", gap: 4, fontSize: 11 }}>
-          {(Object.keys(PROVIDER_LABEL) as Provider[]).map((p) => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => handleProviderChange(p)}
-              style={{
-                padding: "4px 8px",
-                borderRadius: 4,
-                border: provider === p ? "1px solid #4488ff" : "1px solid #333",
-                background: provider === p ? "#1a2a44" : "transparent",
-                color: provider === p ? "#eee" : "#888",
-                cursor: "pointer",
-              }}
-            >
-              {PROVIDER_LABEL[p]}
-            </button>
-          ))}
-        </div>
+    <aside className="chat" aria-label="Chat asisten adegan">
+      <div className="chat-head">
+        <span className="dotlive" />
+        <b>Asisten Adegan</b>
+        <span className="provider-chip num">
+          {`${MODELS[provider]} · tool-calling`}
+        </span>
       </div>
 
-      {!hasActiveKey ? (
-        <form
-          onSubmit={handleSaveKey}
-          style={{ display: "flex", flexDirection: "column", gap: 8 }}
-        >
-          <label style={{ fontSize: 12, color: "#aaa" }}>
-            {PROVIDER_LABEL[provider]} API key (stored in localStorage)
-          </label>
-          <input
-            type="password"
-            value={keyInput}
-            onChange={(e) => setKeyInput(e.target.value)}
-            placeholder={PROVIDER_PLACEHOLDER[provider]}
-            style={{
-              padding: 8,
-              borderRadius: 4,
-              border: "1px solid #333",
-              background: "#1a1a1d",
-              color: "#eee",
-            }}
-          />
-          <button
-            type="submit"
-            disabled={!keyInput.trim()}
-            style={{
-              padding: 8,
-              borderRadius: 4,
-              border: "none",
-              background: keyInput.trim() ? "#4488ff" : "#333",
-              color: "white",
-              cursor: keyInput.trim() ? "pointer" : "default",
-            }}
-          >
-            Save {PROVIDER_LABEL[provider]} key
-          </button>
-        </form>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12 }}>
-          <div style={{ color: "#888" }}>
-            {PROVIDER_LABEL[provider]} key active
-            {provider === "claude" && glmApiKey && " · GLM key also saved"}
-            {provider === "glm" && claudeApiKey && " · Claude key also saved"}
+      {!apiKey && (
+        <form className="keyform" onSubmit={handleSaveKey}>
+          <small>
+            Tempel API key {PROVIDER_LABEL[provider]} — disimpan lokal di
+            browser (localStorage), hanya dikirim ke endpoint provider.
+          </small>
+          <div className="keyrow">
+            <input
+              type="password"
+              value={keyInput}
+              onChange={(e) => setKeyInput(e.target.value)}
+              placeholder={PROVIDER_PLACEHOLDER[provider]}
+              aria-label={`API key ${PROVIDER_LABEL[provider]}`}
+            />
+            <button
+              className="btn-primary"
+              type="submit"
+              disabled={!keyInput.trim()}
+            >
+              Simpan
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={handleClearKey}
-            style={{
-              padding: 6,
-              borderRadius: 4,
-              border: "1px solid #333",
-              background: "transparent",
-              color: "#aaa",
-              cursor: "pointer",
-              fontSize: 12,
-              alignSelf: "flex-start",
-            }}
-          >
-            Clear {PROVIDER_LABEL[provider]} key
-          </button>
+        </form>
+      )}
+
+      {apiKey && (
+        <div className="keyform">
+          <div className="keyrow" style={{ alignItems: "center" }}>
+            <small style={{ flex: 1 }}>
+              key {PROVIDER_LABEL[provider]} aktif — tersimpan lokal.
+            </small>
+            <button className="ghost" onClick={handleClearKey}>
+              hapus
+            </button>
+          </div>
         </div>
       )}
 
-      <div
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          padding: 8,
-          border: "1px solid #222",
-          borderRadius: 4,
-          background: "#131316",
-          fontSize: 13,
-        }}
-      >
-        {messages.length === 0 && (
-          <div style={{ color: hasActiveKey ? "#888" : "#ff9966" }}>
-            {hasActiveKey
-              ? "Ask the assistant to build something."
-              : `⬆ Paste your ${PROVIDER_LABEL[provider]} API key above first, then type a prompt below.`}
-          </div>
+      <div className="thread" ref={threadRef}>
+        {entries.length === 0 && (
+          <>
+            <div className="msg-a">
+              Halo! Aku asisten adegan — perintahmu dieksekusi sebagai{" "}
+              <b>tool call</b> terstruktur di engine lokal, bukan generate mesh.
+              Scene graph JSON jadi sumber kebenaran; semua revisi bersifat
+              non-destruktif.
+            </div>
+            <div className="note">
+              provider nyata · respons langsung dari adapter LLM
+            </div>
+          </>
         )}
-        {messages.map((m, i) => (
-          <div
-            key={i}
-            style={{
-              marginBottom: 8,
-              textAlign: m.role === "assistant" ? "left" : "right",
-            }}
-          >
-            <span
-              style={{
-                display: "inline-block",
-                padding: "6px 10px",
-                borderRadius: 8,
-                background: m.role === "assistant" ? "#1f1f24" : "#335577",
-                maxWidth: "85%",
-              }}
-            >
-              {m.content || "(tool call)"}
-            </span>
-          </div>
+        {entries.map((entry, i) => (
+          <EntryView key={i} entry={entry} />
         ))}
-        {status === "thinking" && (
-          <div style={{ color: "#888", fontStyle: "italic" }}>Thinking…</div>
-        )}
-        {status === "error" && lastError && (
-          <div style={{ color: "#ff6666" }}>Error: {lastError}</div>
+        {thinking && (
+          <div className="msg-a think">
+            <span className="dots">
+              <i />
+              <i />
+              <i />
+            </span>
+            <span>menyusun rencana…</span>
+          </div>
         )}
       </div>
 
-      <form onSubmit={onSubmit} style={{ display: "flex", gap: 8 }}>
-        <input
+      {!hasUserEntry && (
+        <div className="chip-row">
+          {STARTER_CHIPS.map((c) => (
+            <button
+              className="chip"
+              key={c}
+              disabled={thinking}
+              onClick={() => void sendPrompt(c)}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="ctx num">
+        {`scene JSON ≈ ${tokenEstimate} token · dikirim penuh (v1)`}
+      </div>
+
+      <div className="composer">
+        <textarea
+          ref={textareaRef}
+          className="chat-input"
+          rows={1}
           value={input}
+          disabled={thinking}
           onChange={(e) => setInput(e.target.value)}
-          placeholder={
-            hasActiveKey
-              ? "Build a house at origin"
-              : `Type after pasting your ${PROVIDER_LABEL[provider]} key above`
-          }
-          disabled={status === "thinking"}
-          style={{
-            flex: 1,
-            padding: 8,
-            borderRadius: 4,
-            border: "1px solid #333",
-            background: "#1a1a1d",
-            color: "#eee",
+          onInput={(e) => {
+            const el = e.currentTarget;
+            el.style.height = "auto";
+            el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
           }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              submit();
+            }
+          }}
+          placeholder="Minta aset, ubah material, atau susun ulang adegan… (Enter kirim · Shift+Enter baris baru)"
+          aria-label="Prompt untuk asisten"
         />
         <button
-          type="submit"
-          disabled={!hasActiveKey || status === "thinking" || !input.trim()}
-          title={!hasActiveKey ? "Paste your API key above first" : undefined}
-          style={{
-            padding: "8px 16px",
-            borderRadius: 4,
-            border: "none",
-            background:
-              !hasActiveKey || status === "thinking" || !input.trim()
-                ? "#333"
-                : "#4488ff",
-            color: "white",
-            cursor:
-              !hasActiveKey || status === "thinking" || !input.trim()
-                ? "not-allowed"
-                : "pointer",
-          }}
+          className="send"
+          onClick={submit}
+          disabled={thinking || !input.trim()}
+          aria-label="Kirim prompt"
         >
-          Send
+          <svg
+            width="17"
+            height="17"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.7"
+          >
+            <path d="M4 12 20 4l-7 16-2.2-6.8L4 12z" />
+          </svg>
         </button>
-      </form>
+      </div>
     </aside>
   );
 }

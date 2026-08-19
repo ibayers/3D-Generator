@@ -3,7 +3,7 @@ import { applyCreateHouse } from "../src/templates/createHouse";
 import type { SceneNode } from "@asset-studio/scene-engine";
 
 describe("applyCreateHouse", () => {
-  it("produces walls, roof, and window panes with unique ids", () => {
+  it("produces walls and roof with unique ids", () => {
     const scene = { nodes: [] as SceneNode[] };
     const result = applyCreateHouse(
       {
@@ -19,10 +19,8 @@ describe("applyCreateHouse", () => {
     const ids = result.newNodes.map((n) => n.id);
     expect(ids).toContain("house-01-walls");
     expect(ids).toContain("house-01-roof");
-    // At least 1 window pane
-    expect(
-      ids.filter((i) => i.startsWith("house-01-window")).length
-    ).toBeGreaterThan(0);
+    // ponytail: windows removed (M4 CSG); only walls + roof in newNodes
+    expect(ids).toHaveLength(2);
   });
 
   it("walls extrude footprint of size[0] x size[2], height size[1]", () => {

@@ -7,7 +7,7 @@ function emptyScene(): Scene {
 }
 
 describe('toolExecutor template integration', () => {
-  it('create_house adds walls, roof, and windows to the scene', () => {
+  it('create_house adds walls and roof to the scene', () => {
     const scene = emptyScene();
     const res = executeToolCall(scene, {
       name: 'create_house',
@@ -19,7 +19,8 @@ describe('toolExecutor template integration', () => {
     });
     expect(res.ok).toBe(true);
     if (!res.ok) return;
-    expect(res.scene.nodes.length).toBeGreaterThanOrEqual(3);
+    // ponytail: windows removed (M4 CSG); only walls + roof remain
+    expect(res.scene.nodes.length).toBeGreaterThanOrEqual(2);
     expect(res.scene.nodes.some((n) => n.id === 'h1-walls')).toBe(true);
     expect(res.scene.nodes.some((n) => n.id === 'h1-roof')).toBe(true);
     // original scene is not mutated (immutable pattern)

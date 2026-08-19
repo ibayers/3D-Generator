@@ -1,85 +1,135 @@
 'use client';
 
 import { create } from 'zustand';
-import { useLlmStore } from './llmStore';
+import { useLlmStore, type Provider } from './llmStore';
 import { useSceneStore } from './sceneStore';
+import type { ToolCall } from '@asset-studio/scene-engine';
 import {
   createClaudeAdapter,
   createGLMAdapter,
+  createN9RouterAdapter,
   runWithRetry,
   TOOL_DEFINITIONS,
   SYSTEM_PROMPT,
-  type ChatMessage,
   type LLMAdapter,
 } from '@asset-studio/llm-adapter';
 
 const MAX_RETRIES = 2;
 
-const MODELS: Record<string, string> = {
+// ponytail: GLM defaults to Coding Plan endpoint; switch to 'glm-4.5-air'
+// if you only have standard API credits. 9Router routes through a local
+// proxy at http://localhost:20128/v1 — model format '<provider>/<model>'.
+export const MODELS: Record<Provider, string> = {
   claude: 'claude-sonnet-4-6',
-  glm: 'glm-5.2',
+  glm: 'glm-4.5-air',
+  n9router: 'glm/glm-5.1',
 };
 
 function createAdapter(provider: string, apiKey: string): LLMAdapter {
-  const model = MODELS[provider] ?? MODELS.claude!;
+  const model = MODELS[provider as Provider] ?? MODELS.claude;
   if (provider === 'glm') {
     return createGLMAdapter({ apiKey, model, tools: TOOL_DEFINITIONS });
+  }
+  if (provider === 'n9router') {
+    return createN9RouterAdapter({ apiKey, model, tools: TOOL_DEFINITIONS });
   }
   return createClaudeAdapter({ apiKey, model, tools: TOOL_DEFINITIONS });
 }
 
+/** Transkrip chat — satu union untuk bubble user/asisten, note, kartu tool, error. */
+export type ChatEntry =
+  | { kind: 'user'; text: string }
+  | { kind: 'assistant'; text: string }
+  | { kind: 'note'; text: string }
+  | { kind: 'error'; text: string }
+  | {
+      kind: 'tool';
+      name: string;
+      input: Record<string, unknown>;
+      ok: boolean;
+      error?: string;
+      ms: number;
+    };
+
 interface ChatState {
-  messages: ChatMessage[];
+  entries: ChatEntry[];
   status: 'idle' | 'thinking' | 'error';
   lastError: string | null;
   sendPrompt: (prompt: string) => Promise<void>;
+  pushNote: (text: string) => void;
   reset: () => void;
 }
 
+function providerLabel(provider: Provider): string {
+  if (provider === 'glm') return 'Z.ai (GLM)';
+  if (provider === 'n9router') return '9Router';
+  return 'Anthropic (Claude)';
+}
+
 export const useChatStore = create<ChatState>((set, get) => ({
-  messages: [],
+  entries: [],
   status: 'idle',
   lastError: null,
-  reset: () => set({ messages: [], status: 'idle', lastError: null }),
+
+  pushNote: (text) =>
+    set((s) => ({ entries: [...s.entries, { kind: 'note', text }] })),
+
+  reset: () => set({ entries: [], status: 'idle', lastError: null }),
+
   sendPrompt: async (prompt) => {
+    const push = (entry: ChatEntry) =>
+      set((s) => ({ entries: [...s.entries, entry] }));
+
+    push({ kind: 'user', text: prompt });
+
     const llm = useLlmStore.getState();
-    const apiKey = llm.apiKey;
-    if (!apiKey) {
-      const providerLabel =
-        llm.provider === 'glm' ? 'Z.ai (GLM)' : 'Anthropic (Claude)';
-      set({
-        status: 'error',
-        lastError: `Missing API key for ${providerLabel}. Paste your key in the panel above.`,
-      });
+    if (!llm.apiKey) {
+      const msg = `API key untuk ${providerLabel(llm.provider)} belum diatur — tempel kunci Anda di formulir kunci di atas.`;
+      push({ kind: 'error', text: msg });
+      set({ status: 'error', lastError: msg });
       return;
     }
 
-    const sceneStore = useSceneStore.getState();
-    const sceneJson = JSON.stringify(sceneStore.scene);
+    const sceneJson = JSON.stringify(useSceneStore.getState().scene);
     const userPayload = `${prompt}\n\nCurrent scene JSON:\n${sceneJson}`;
 
     set({ status: 'thinking', lastError: null });
 
     try {
-      const adapter = createAdapter(llm.provider, apiKey);
+      const adapter = createAdapter(llm.provider, llm.apiKey);
 
       const result = await runWithRetry({
         adapter,
         systemPrompt: SYSTEM_PROMPT,
         userPrompt: userPayload,
         tools: TOOL_DEFINITIONS,
-        applyToolCall: (name, input) =>
-          Promise.resolve(
-            sceneStore.applyToolCall({ name, input } as never),
-          ),
+        applyToolCall: async (name, input) => {
+          const t0 = performance.now();
+          const res = useSceneStore
+            .getState()
+            .applyToolCall({ name, input } as ToolCall);
+          const ms = Math.round(performance.now() - t0);
+          push({
+            kind: 'tool',
+            name,
+            input: input as Record<string, unknown>,
+            ok: res.ok,
+            error: res.error,
+            ms,
+          });
+          return res;
+        },
         maxRetries: MAX_RETRIES,
       });
 
-      set({
-        messages: [...get().messages, ...result.assistantMessages],
+      const assistantEntries: ChatEntry[] = result.assistantMessages.map(
+        (m) => ({ kind: 'assistant', text: m.content }),
+      );
+      set((s) => ({
+        entries: [...s.entries, ...assistantEntries],
         status: result.finalStatus === 'ok' ? 'idle' : 'error',
         lastError: result.lastError ?? null,
-      });
+      }));
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       set({ status: 'error', lastError: msg });

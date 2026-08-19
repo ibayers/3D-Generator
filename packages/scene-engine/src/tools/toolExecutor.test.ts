@@ -103,4 +103,30 @@ describe('executeToolCall integration', () => {
     });
     expect(result.ok).toBe(false);
   });
+
+  it('replaces existing nodes on create_house re-invocation (idempotent by id)', () => {
+    const baseInput = {
+      id: 'house-01',
+      position: [0, 0, 0] as [number, number, number],
+      size: [2, 1, 2] as [number, number, number],
+    };
+    const first = executeToolCall(sampleScene, {
+      name: 'create_house',
+      input: baseInput,
+    });
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
+    const firstWalls = first.scene.nodes.find((n) => n.id === 'house-01-walls');
+    expect(firstWalls?.material?.color).toBe('#cccccc');
+
+    const second = executeToolCall(first.scene, {
+      name: 'create_house',
+      input: { ...baseInput, wallColor: '#ff0000' },
+    });
+    expect(second.ok).toBe(true);
+    if (!second.ok) return;
+    const wallsNodes = second.scene.nodes.filter((n) => n.id === 'house-01-walls');
+    expect(wallsNodes).toHaveLength(1);
+    expect(wallsNodes[0]?.material?.color).toBe('#ff0000');
+  });
 });

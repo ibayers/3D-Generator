@@ -77,29 +77,8 @@ export function applyCreateHouse(
     [0, py + h, 0]
   );
 
-  // ponytail: decorative window panes on the +Z face. Real CSG cuts land in M4.
-  const windowNodes: SceneNode[] = [];
-  const windowSize = 0.4;
-  const windowHeight = py + h * 0.5;
-  const windowZ = pz + halfD + 0.01;
-  const windowSpacing = w / 3;
-  for (let i = 0; i < 2; i++) {
-    const wx = px - windowSpacing / 2 + i * windowSpacing;
-    windowNodes.push(
-      extrudeNode(
-        `${input.id}-window-${i + 1}`,
-        [
-          [wx - windowSize / 2, windowZ - windowSize / 2],
-          [wx + windowSize / 2, windowZ - windowSize / 2],
-          [wx + windowSize / 2, windowZ + windowSize / 2],
-          [wx - windowSize / 2, windowZ + windowSize / 2],
-        ],
-        0.05,
-        "#88aacc",
-        [0, windowHeight, 0]
-      )
-    );
-  }
-
-  return { newNodes: [walls, roof, ...windowNodes] };
+  // ponytail: windows removed — they were authored with a different extrude
+  // convention (shape=face, depth=protrusion) that conflicts with the
+  // footprint-extrude convention used by walls. Real CSG window cuts land in M4.
+  return { newNodes: [walls, roof] };
 }

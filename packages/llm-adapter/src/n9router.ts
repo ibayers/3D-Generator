@@ -2,16 +2,19 @@ import OpenAI from "openai";
 import type { ChatMessage, ChatResult, LLMAdapter } from "./types";
 import type { ToolDefinition } from "./tools";
 
-// ponytail: SDK's ChatCompletionTool/ChatCompletionMessageParam are stricter than
-// the wire format we produce; we cast at the boundary rather than importing SDK
-// domain types into our union, since this adapter is the only consumer.
+// ponytail: near-duplicate of glm.ts — both wrap OpenAI SDK with a different
+// baseURL. 9Router is a local proxy (default http://localhost:20128/v1) that
+// exposes an OpenAI-compatible endpoint with smart fallback across 40+
+// upstream providers. Could be unified with glm.ts into a single
+// createOpenAICompatAdapter({ baseURL, ... }), but we only have three
+// targets today. Refactor when a fourth appears.
 type OpenAIMessage = { role: string; content: string };
 type OpenAITool = {
   type: "function";
   function: { name: string; description: string; parameters: unknown };
 };
 
-export interface GLMAdapterOptions {
+export interface N9RouterAdapterOptions {
   apiKey: string;
   model: string;
   tools: ToolDefinition[];
@@ -19,14 +22,7 @@ export interface GLMAdapterOptions {
   baseURL?: string;
 }
 
-// ponytail: Z.ai has two endpoints with SEPARATE billing:
-//   - Standard API:  https://api.z.ai/api/paas/v4/         (pay-as-you-go credits)
-//   - Coding Plan:   https://api.z.ai/api/coding/paas/v4/  (monthly subscription)
-// The Coding Plan endpoint is what `zai-coding-plan/*` models in opencode use.
-// Default here is Coding Plan because that's the common subscription path; pass
-// `baseURL` option to override if you only have standard API credits.
-const GLM_CODING_PLAN_BASE_URL = "https://api.z.ai/api/coding/paas/v4/";
-const GLM_BASE_URL = GLM_CODING_PLAN_BASE_URL;
+const N9ROUTER_DEFAULT_BASE_URL = "http://localhost:20128/v1";
 
 const FINISH_REASON_MAP: Record<string, string> = {
   stop: "end_turn",
@@ -45,13 +41,15 @@ function toOpenAITools(tools: ToolDefinition[]): OpenAITool[] {
   }));
 }
 
-export function createGLMAdapter(opts: GLMAdapterOptions): LLMAdapter {
+export function createN9RouterAdapter(
+  opts: N9RouterAdapterOptions,
+): LLMAdapter {
   const client = new OpenAI({
     apiKey: opts.apiKey,
-    baseURL: opts.baseURL ?? GLM_BASE_URL,
+    baseURL: opts.baseURL ?? N9ROUTER_DEFAULT_BASE_URL,
     dangerouslyAllowBrowser: true,
   });
-  const maxTokens = opts.maxTokens ?? 512;
+  const maxTokens = opts.maxTokens ?? 1024;
 
   return {
     async chat(
@@ -81,15 +79,13 @@ export function createGLMAdapter(opts: GLMAdapterOptions): LLMAdapter {
         const toolCalls: ChatResult["toolCalls"] = [];
 
         for (const tc of message?.tool_calls ?? []) {
-          const fn = (
-            tc as { function?: { name?: string; arguments?: string } }
-          ).function;
+          const fn = (tc as { function?: { name?: string; arguments?: string } }).function;
           if (!fn) continue;
           let parsedInput: Record<string, unknown> = {};
           try {
             parsedInput = fn.arguments ? JSON.parse(fn.arguments) : {};
           } catch {
-            // ponytail: malformed arguments become empty object; orchestrator's
+            // ponytail: malformed arguments → empty object; orchestrator's
             // applyToolCall will reject with a descriptive Zod error.
             parsedInput = {};
           }
@@ -111,7 +107,7 @@ export function createGLMAdapter(opts: GLMAdapterOptions): LLMAdapter {
         };
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        throw new Error(`GLM chat failed: ${msg}`);
+        throw new Error(`9Router chat failed: ${msg}`);
       }
     },
   };
