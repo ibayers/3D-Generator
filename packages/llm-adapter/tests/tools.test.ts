@@ -11,6 +11,8 @@ describe("TOOL_DEFINITIONS", () => {
     expect(Object.keys(house.input_schema.properties)).toContain("roofStyle");
     expect(Object.keys(house.input_schema.properties)).toContain("roofHeight");
     expect(house.input_schema.required).toEqual(["id", "position"]);
+    expect(house.input_schema.properties.size.minItems).toBe(3);
+    expect(house.input_schema.properties.roofHeight.exclusiveMinimum).toBe(0);
   });
 });
 

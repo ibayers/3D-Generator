@@ -136,6 +136,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
         size: {
           type: "array",
           items: { type: "number" },
+          minItems: 3,
+          maxItems: 3,
           description: "Optional [width, height, depth]; default [8, floors*3, 6]",
         },
         floors: {
@@ -151,6 +153,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
         },
         roofHeight: {
           type: "number",
+          exclusiveMinimum: 0,
           description: "Gable ridge height; default max(1, width*0.22)",
         },
         wallColor: { type: "string" },
