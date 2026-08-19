@@ -37,8 +37,13 @@ export async function runWithRetry(
       opts.systemPrompt
     );
 
-    assistantMessages.push({ role: "assistant", content: result.content });
-    messages.push({ role: "assistant", content: result.content });
+    // ponytail: Anthropic API rejects empty-content messages with 400, and a
+    // tool-only turn legitimately has content "". Only record non-empty turns.
+    if (result.content.trim().length > 0) {
+      const msg = { role: "assistant" as const, content: result.content };
+      assistantMessages.push(msg);
+      messages.push(msg);
+    }
 
     if (result.toolCalls.length === 0) {
       return { assistantMessages, finalStatus: "ok" };

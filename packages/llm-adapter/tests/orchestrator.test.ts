@@ -1,15 +1,24 @@
 import { describe, it, expect, vi } from "vitest";
 import { runWithRetry } from "../src/orchestrator";
-import type { LLMAdapter, ChatResult } from "../src/types";
+import type { LLMAdapter, ChatResult, ChatMessage } from "../src/types";
 
-function makeAdapter(responses: ChatResult[]): LLMAdapter {
+function makeAdapter(responses: ChatResult[]): {
+  adapter: LLMAdapter;
+  calls: ChatMessage[][];
+} {
+  const calls: ChatMessage[][] = [];
   let i = 0;
   return {
-    chat: vi.fn(async (): Promise<ChatResult> => {
-      const r = responses[i];
-      i++;
-      return r;
-    }),
+    calls,
+    adapter: {
+      chat: vi.fn(async (messages: ChatMessage[]): Promise<ChatResult> => {
+        calls.push(messages.map((m) => ({ ...m })));
+        const r = responses[i];
+        i++;
+        if (!r) throw new Error("adapter ran out of scripted responses");
+        return r;
+      }),
+    },
   };
 }
 
@@ -29,7 +38,7 @@ function makeExecutor() {
 
 describe("runWithRetry", () => {
   it("returns immediately when assistant ends turn with no tool_calls", async () => {
-    const adapter = makeAdapter([
+    const { adapter } = makeAdapter([
       { content: "hi", toolCalls: [], stopReason: "end_turn" },
     ]);
     const exec = makeExecutor();
@@ -47,7 +56,7 @@ describe("runWithRetry", () => {
   });
 
   it("executes one tool_call then ends", async () => {
-    const adapter = makeAdapter([
+    const { adapter } = makeAdapter([
       {
         content: "building",
         toolCalls: [
@@ -74,7 +83,7 @@ describe("runWithRetry", () => {
   });
 
   it("retries after tool execution failure up to maxRetries", async () => {
-    const adapter = makeAdapter([
+    const { adapter } = makeAdapter([
       {
         content: "try",
         toolCalls: [{ id: "tu1", name: "bad_tool", input: {} }],
@@ -109,7 +118,7 @@ describe("runWithRetry", () => {
   });
 
   it("stops retrying once a turn has no tool_calls", async () => {
-    const adapter = makeAdapter([
+    const { adapter } = makeAdapter([
       {
         content: "try",
         toolCalls: [{ id: "tu1", name: "bad_tool", input: {} }],
@@ -130,5 +139,22 @@ describe("runWithRetry", () => {
     expect(exec.calls).toHaveLength(1);
     expect(result.assistantMessages.at(-1)?.content).toBe("gave up");
     expect(result.finalStatus).toBe("ok");
+  });
+
+  it("does not push an empty assistant message when the turn is tool-only", async () => {
+    const { adapter, calls } = makeAdapter([
+      { content: "", toolCalls: [{ id: "tu1", name: "create_house", input: { id: "h1" } }], stopReason: "tool_use" },
+      { content: "done", toolCalls: [], stopReason: "end_turn" },
+    ]);
+    const exec = makeExecutor();
+    const result = await runWithRetry({
+      adapter, systemPrompt: "s", userPrompt: "build",
+      tools: [], applyToolCall: exec.apply, maxRetries: 2,
+    });
+
+    const second = calls[1]!;
+    expect(second.every((m) => m.content.length > 0)).toBe(true);
+    expect(result.assistantMessages.every((m) => m.content.length > 0)).toBe(true);
+    expect(result.assistantMessages.at(-1)?.content).toBe("done");
   });
 });
