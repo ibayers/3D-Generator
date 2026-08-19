@@ -9,6 +9,15 @@ const GLM_KEY_STORAGE = 'asset-studio:glm-api-key';
 const N9ROUTER_KEY_STORAGE = 'asset-studio:n9router-api-key';
 const PROVIDER_STORAGE = 'asset-studio:provider';
 const LEGACY_KEY_STORAGE = 'asset-studio:anthropic-api-key';
+const MODEL_STORAGE_PREFIX = 'asset-studio:model:';
+
+// ponytail: GLM defaults to the Coding Plan endpoint; 'glm-4.6' is the
+// subscription model. Users can override per provider in the chat panel.
+export const DEFAULT_MODELS: Record<Provider, string> = {
+  claude: 'claude-sonnet-4-6',
+  glm: 'glm-4.6',
+  n9router: 'glm/glm-5.1',
+};
 
 interface LlmState {
   provider: Provider;
@@ -21,6 +30,9 @@ interface LlmState {
   setClaudeApiKey: (key: string) => void;
   setGlmApiKey: (key: string) => void;
   setN9RouterApiKey: (key: string) => void;
+  /** Active model per provider (override persisted in localStorage). */
+  models: Record<Provider, string>;
+  setModel: (provider: Provider, model: string) => void;
   clearClaudeApiKey: () => void;
   clearGlmApiKey: () => void;
   clearN9RouterApiKey: () => void;
@@ -86,6 +98,27 @@ export const useLlmStore = create<LlmState>((set, get) => ({
   glmApiKey: '',
   n9routerApiKey: '',
   apiKey: '',
+  models: { ...DEFAULT_MODELS },
+  setModel: (provider, model) => {
+    const trimmed = model.trim();
+    if (typeof window !== 'undefined') {
+      try {
+        if (trimmed) {
+          window.localStorage.setItem(MODEL_STORAGE_PREFIX + provider, trimmed);
+        } else {
+          window.localStorage.removeItem(MODEL_STORAGE_PREFIX + provider);
+        }
+      } catch {
+        // ignore quota / privacy errors
+      }
+    }
+    set((s) => ({
+      models: {
+        ...s.models,
+        [provider]: trimmed || DEFAULT_MODELS[provider],
+      },
+    }));
+  },
   setProvider: (provider) => {
     writeProvider(provider);
     const { claudeApiKey, glmApiKey, n9routerApiKey } = get();
@@ -127,11 +160,27 @@ export const useLlmStore = create<LlmState>((set, get) => ({
     const glmApiKey = readKey(GLM_KEY_STORAGE);
     const n9routerApiKey = readKey(N9ROUTER_KEY_STORAGE);
     const provider = readProvider();
+    const readModel = (p: Provider): string => {
+      try {
+        return (
+          window.localStorage.getItem(MODEL_STORAGE_PREFIX + p) ??
+          DEFAULT_MODELS[p]
+        );
+      } catch {
+        return DEFAULT_MODELS[p];
+      }
+    };
+    const models: Record<Provider, string> = {
+      claude: readModel('claude'),
+      glm: readModel('glm'),
+      n9router: readModel('n9router'),
+    };
     set({
       claudeApiKey,
       glmApiKey,
       n9routerApiKey,
       provider,
+      models,
       apiKey: activeKey(
         provider,
         claudeApiKey,
