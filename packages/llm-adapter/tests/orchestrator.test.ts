@@ -199,4 +199,51 @@ describe("runWithRetry", () => {
     expect(feedback.content).toContain("create_house");
     expect(feedback.content).toContain("create_road");
   });
+
+  it("stops after maxToolRounds successful rounds even without failures", async () => {
+    const loopResponse: ChatResult = {
+      content: "", stopReason: "tool_use",
+      toolCalls: [{ id: "tu", name: "create_road", input: { id: "r" } }],
+    };
+    const { adapter } = makeAdapter(Array.from({ length: 20 }, () => loopResponse));
+    const exec = makeExecutor();
+    const result = await runWithRetry({
+      adapter, systemPrompt: "s", userPrompt: "go",
+      tools: [], applyToolCall: exec.apply, maxRetries: 2,
+      maxToolRounds: 3,
+    });
+
+    expect(exec.calls).toHaveLength(3);
+    expect(result.finalStatus).toBe("ok");
+    expect(result.lastError).toMatch(/3 tool rounds/);
+  });
+
+  it("defaults the round cap to 6", async () => {
+    const loopResponse: ChatResult = {
+      content: "", stopReason: "tool_use",
+      toolCalls: [{ id: "tu", name: "create_road", input: { id: "r" } }],
+    };
+    const { adapter } = makeAdapter(Array.from({ length: 20 }, () => loopResponse));
+    const exec = makeExecutor();
+    await runWithRetry({
+      adapter, systemPrompt: "s", userPrompt: "go",
+      tools: [], applyToolCall: exec.apply, maxRetries: 2,
+    });
+    expect(exec.calls).toHaveLength(6);
+  });
+
+  it("invokes onAssistant for each non-empty assistant turn", async () => {
+    const { adapter } = makeAdapter([
+      { content: "planning the house", toolCalls: [{ id: "tu1", name: "create_house", input: { id: "h1" } }], stopReason: "tool_use" },
+      { content: "done", toolCalls: [], stopReason: "end_turn" },
+    ]);
+    const exec = makeExecutor();
+    const seen: string[] = [];
+    await runWithRetry({
+      adapter, systemPrompt: "s", userPrompt: "build",
+      tools: [], applyToolCall: exec.apply, maxRetries: 2,
+      onAssistant: (content) => seen.push(content),
+    });
+    expect(seen).toEqual(["planning the house", "done"]);
+  });
 });

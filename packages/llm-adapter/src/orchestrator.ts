@@ -6,6 +6,8 @@ export type ApplyToolCall = (
   input: Record<string, unknown>
 ) => Promise<{ ok: boolean; error?: string }>;
 
+const DEFAULT_MAX_TOOL_ROUNDS = 6;
+
 export interface RunWithRetryOptions {
   adapter: LLMAdapter;
   systemPrompt: string;
@@ -13,8 +15,12 @@ export interface RunWithRetryOptions {
   tools: ToolDefinition[];
   applyToolCall: ApplyToolCall;
   maxRetries: number;
+  /** Max successful tool rounds before forcing a stop. Default 6. */
+  maxToolRounds?: number;
   /** Serialized scene appended to success feedback so the model sees the new state. */
   getSceneState?: () => string;
+  /** Live notification of each non-empty assistant turn. */
+  onAssistant?: (content: string) => void;
 }
 
 export interface RunResult {
@@ -26,11 +32,13 @@ export interface RunResult {
 export async function runWithRetry(
   opts: RunWithRetryOptions
 ): Promise<RunResult> {
+  const maxToolRounds = opts.maxToolRounds ?? DEFAULT_MAX_TOOL_ROUNDS;
   const messages: ChatMessage[] = [
     { role: "user", content: opts.userPrompt },
   ];
   const assistantMessages: ChatMessage[] = [];
   let retries = 0;
+  let rounds = 0;
   let lastError: string | undefined;
 
   while (retries <= opts.maxRetries) {
@@ -45,10 +53,20 @@ export async function runWithRetry(
       const msg = { role: "assistant" as const, content: result.content };
       assistantMessages.push(msg);
       messages.push(msg);
+      opts.onAssistant?.(result.content);
     }
 
     if (result.toolCalls.length === 0) {
       return { assistantMessages, finalStatus: "ok" };
+    }
+
+    rounds++;
+    if (rounds > maxToolRounds) {
+      return {
+        assistantMessages,
+        finalStatus: "ok",
+        lastError: `Stopped after ${maxToolRounds} tool rounds (limit).`,
+      };
     }
 
     let failed: ToolCall | undefined;
@@ -84,7 +102,7 @@ export async function runWithRetry(
       };
     }
 
-    // Feed failure back to Claude.
+    // Feed failure back to the model.
     messages.push({
       role: "user",
       content: `Tool "${failed.name}" (id ${failed.id}) failed: ${lastError}. Please correct and retry, or reply without that tool.`,
