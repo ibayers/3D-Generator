@@ -157,4 +157,46 @@ describe("runWithRetry", () => {
     expect(result.assistantMessages.every((m) => m.content.length > 0)).toBe(true);
     expect(result.assistantMessages.at(-1)?.content).toBe("done");
   });
+
+  it("sends a success feedback user message with updated scene JSON after tools run", async () => {
+    const { adapter, calls } = makeAdapter([
+      { content: "", toolCalls: [{ id: "tu1", name: "create_house", input: { id: "h1" } }], stopReason: "tool_use" },
+      { content: "done", toolCalls: [], stopReason: "end_turn" },
+    ]);
+    const exec = makeExecutor();
+    await runWithRetry({
+      adapter, systemPrompt: "s", userPrompt: "build",
+      tools: [], applyToolCall: exec.apply, maxRetries: 2,
+      getSceneState: () => '{"nodes":[{"id":"h1-walls"}]}',
+    });
+
+    const second = calls[1]!;
+    const feedback = second.at(-1)!;
+    expect(feedback.role).toBe("user");
+    expect(feedback.content).toContain("create_house");
+    expect(feedback.content).toContain("succeeded");
+    expect(feedback.content).toContain('{"nodes":[{"id":"h1-walls"}]}');
+  });
+
+  it("multi-tool round reports every tool name in the feedback message", async () => {
+    const { adapter, calls } = makeAdapter([
+      {
+        content: "", stopReason: "tool_use",
+        toolCalls: [
+          { id: "tu1", name: "create_house", input: { id: "h1" } },
+          { id: "tu2", name: "create_road", input: { id: "r1" } },
+        ],
+      },
+      { content: "done", toolCalls: [], stopReason: "end_turn" },
+    ]);
+    const exec = makeExecutor();
+    await runWithRetry({
+      adapter, systemPrompt: "s", userPrompt: "build",
+      tools: [], applyToolCall: exec.apply, maxRetries: 2,
+    });
+
+    const feedback = calls[1]!.at(-1)!;
+    expect(feedback.content).toContain("create_house");
+    expect(feedback.content).toContain("create_road");
+  });
 });

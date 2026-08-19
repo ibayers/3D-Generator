@@ -13,6 +13,8 @@ export interface RunWithRetryOptions {
   tools: ToolDefinition[];
   applyToolCall: ApplyToolCall;
   maxRetries: number;
+  /** Serialized scene appended to success feedback so the model sees the new state. */
+  getSceneState?: () => string;
 }
 
 export interface RunResult {
@@ -60,7 +62,16 @@ export async function runWithRetry(
     }
 
     if (!failed) {
-      // All tools succeeded; loop again so assistant can confirm/end.
+      // All tools succeeded; report back so the model can chain the next step.
+      const names = result.toolCalls.map((tc) => `"${tc.name}"`).join(", ");
+      const sceneState = opts.getSceneState?.() ?? "";
+      messages.push({
+        role: "user",
+        content:
+          `Tool${result.toolCalls.length > 1 ? "s" : ""} ${names} succeeded. ` +
+          `Continue with the next step, or reply with a short summary if the request is complete.` +
+          (sceneState ? `\n\nUpdated scene JSON:\n${sceneState}` : ""),
+      });
       continue;
     }
 
