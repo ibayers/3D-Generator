@@ -30,18 +30,20 @@ export function applyCreateRoad(
 
   const isHorizontal = maxX - minX >= maxZ - minZ;
   const halfW = input.width / 2;
+  // ponytail: shape-Y maps to world -Z (Viewport ExtrudeGeometryMesh rotateX(-PI/2));
+  // author Z negated so the road lands at its true path position.
   const shape: [number, number][] = isHorizontal
     ? [
-        [minX, minZ - halfW],
-        [maxX, minZ - halfW],
-        [maxX, maxZ + halfW],
-        [minX, maxZ + halfW],
+        [minX, -(minZ - halfW)],
+        [maxX, -(minZ - halfW)],
+        [maxX, -(maxZ + halfW)],
+        [minX, -(maxZ + halfW)],
       ]
     : [
-        [minX - halfW, minZ],
-        [maxX + halfW, minZ],
-        [maxX + halfW, maxZ],
-        [minX - halfW, maxZ],
+        [minX - halfW, -minZ],
+        [maxX + halfW, -minZ],
+        [maxX + halfW, -maxZ],
+        [minX - halfW, -maxZ],
       ];
 
   const strip: SceneNode = {

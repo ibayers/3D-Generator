@@ -30,8 +30,18 @@ const FLOOR_BAND_MARGIN = 0.05;
 const FLOOR_BAND_COLOR = "#3a4150";
 const WALL_COLOR_DEFAULT = "#cccccc";
 const ROOF_COLOR_DEFAULT = "#882222";
+const MIN_RIDGE_HEIGHT = 0.05;
 
 type XY = [number, number];
+
+/**
+ * World XZ footprint corner → shape XY pair. The renderer extrudes shape-Y
+ * along +Z then applies rotateX(-PI/2), mapping shape-Y → world -Z; author
+ * world-baked footprints with negated Z so they land at their true position.
+ */
+function xz(x: number, z: number): XY {
+  return [x, -z];
+}
 
 function extrudeNode(
   id: string,
@@ -73,10 +83,10 @@ export function applyCreateHouse(
   const halfD = d / 2;
 
   const wallShape: XY[] = [
-    [px - halfW, pz - halfD],
-    [px + halfW, pz - halfD],
-    [px + halfW, pz + halfD],
-    [px - halfW, pz + halfD],
+    xz(px - halfW, pz - halfD),
+    xz(px + halfW, pz - halfD),
+    xz(px + halfW, pz + halfD),
+    xz(px - halfW, pz + halfD),
   ];
   const nodes: SceneNode[] = [
     extrudeNode(`${input.id}-walls`, wallShape, h, wallColor, [0, py, 0]),
@@ -87,10 +97,10 @@ export function applyCreateHouse(
   for (let k = 1; k < floors; k++) {
     const m = FLOOR_BAND_MARGIN;
     const bandShape: XY[] = [
-      [px - halfW - m, pz - halfD - m],
-      [px + halfW + m, pz - halfD - m],
-      [px + halfW + m, pz + halfD + m],
-      [px - halfW - m, pz + halfD + m],
+      xz(px - halfW - m, pz - halfD - m),
+      xz(px + halfW + m, pz - halfD - m),
+      xz(px + halfW + m, pz + halfD + m),
+      xz(px - halfW - m, pz + halfD + m),
     ];
     nodes.push(
       extrudeNode(
@@ -106,10 +116,10 @@ export function applyCreateHouse(
   if (roofStyle === "flat") {
     const o = ROOF_OVERHANG;
     const roofShape: XY[] = [
-      [px - halfW - o, pz - halfD - o],
-      [px + halfW + o, pz - halfD - o],
-      [px + halfW + o, pz + halfD + o],
-      [px - halfW - o, pz + halfD + o],
+      xz(px - halfW - o, pz - halfD - o),
+      xz(px + halfW + o, pz - halfD - o),
+      xz(px + halfW + o, pz + halfD + o),
+      xz(px - halfW - o, pz + halfD + o),
     ];
     nodes.push(
       extrudeNode(`${input.id}-roof`, roofShape, FLAT_ROOF_THICKNESS, roofColor, [0, py + h, 0])
@@ -117,7 +127,7 @@ export function applyCreateHouse(
   } else {
     // Gable: ridge along Z at (px, py + h + hr, pz). Each slab is an extrude
     // centered at its slope midpoint, tilted ±theta about Z (see plan Task 6).
-    const hr = input.roofHeight ?? Math.max(1, w * 0.22);
+    const hr = Math.max(input.roofHeight ?? Math.max(1, w * 0.22), MIN_RIDGE_HEIGHT);
     const run = halfW + ROOF_OVERHANG;
     const slope = Math.hypot(run, hr);
     const theta = Math.atan2(hr, run);

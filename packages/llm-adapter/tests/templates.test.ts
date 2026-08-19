@@ -95,6 +95,34 @@ describe("applyCreateHouse", () => {
     expect(result.newNodes.find((n) => n.id === "h-floor-2")).toBeDefined();
   });
 
+  it("bakes shape Y as negated world Z so footprints land at true position", () => {
+    const scene = { nodes: [] as SceneNode[] };
+    const result = applyCreateHouse(
+      { id: "h", position: [1, 0, 5], size: [4, 3, 4], roofStyle: "gable" },
+      scene
+    );
+    const walls = result.newNodes.find((n) => n.id === "h-walls");
+    const ys = (walls?.parameters.shape as [number, number][]).map((p) => p[1]);
+    // renderer maps shape-Y → world -Z; walls at Z=5±2 must encode -7…-3
+    expect(Math.max(...ys)).toBeCloseTo(-3);
+    expect(Math.min(...ys)).toBeCloseTo(-7);
+    // gable slabs carry Z via position (not the shape) and stay at +5
+    const right = result.newNodes.find((n) => n.id === "h-roof-r");
+    expect(right?.transform.position[2]).toBe(5);
+  });
+
+  it("clamps tiny roofHeight instead of producing coplanar slabs", () => {
+    const scene = { nodes: [] as SceneNode[] };
+    const w = 4;
+    const result = applyCreateHouse(
+      { id: "h", position: [0, 0, 0], size: [w, 3, 4], roofHeight: 0.001 },
+      scene
+    );
+    const theta = Math.atan2(0.05, w / 2 + 0.3);
+    const right = result.newNodes.find((n) => n.id === "h-roof-r");
+    expect(right?.transform.rotation?.[2]).toBeCloseTo(-theta);
+  });
+
   it("explicit size wins over floors-derived height", () => {
     const scene = { nodes: [] as SceneNode[] };
     const result = applyCreateHouse(
@@ -169,6 +197,16 @@ describe("applyCreateRoad", () => {
     const strip = result.newNodes[0];
     if (strip.type !== "extrude") throw new Error("expected extrude");
     expect(strip.parameters.depth).toBeLessThanOrEqual(0.1);
+  });
+
+  it("bakes shape Y as negated world Z (renderer contract)", () => {
+    const scene = { nodes: [] };
+    const result = applyCreateRoad({ id: "r", path: [[0, 4], [10, 4]], width: 2 }, scene);
+    const strip = result.newNodes[0];
+    if (strip.type !== "extrude") throw new Error("expected extrude");
+    const ys = (strip.parameters.shape as [number, number][]).map((p) => p[1]);
+    expect(Math.max(...ys)).toBeCloseTo(-3); // -(4 - width/2)
+    expect(Math.min(...ys)).toBeCloseTo(-5); // -(4 + width/2)
   });
 
   it("throws when path has fewer than 2 points", () => {
