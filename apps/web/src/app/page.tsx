@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ChatPanel from "../components/ChatPanel";
 import SceneRail from "@/components/SceneRail";
 import StatusStrip from "@/components/StatusStrip";
@@ -9,6 +9,7 @@ import Viewport from "@/components/Viewport";
 import { flattenNodes } from "@/components/geometry";
 import { useChatStore } from "@/store/chatStore";
 import { useSceneStore } from "@/store/sceneStore";
+import { isEditableTarget, parseUndoShortcut } from "../lib/undoShortcuts";
 
 type Pane = "view" | "chat" | "scene";
 
@@ -20,6 +21,19 @@ export default function Home() {
   const triCount = useSceneStore((s) => s.triCount);
   const history = useSceneStore((s) => s.history);
   const sendPrompt = useChatStore((s) => s.sendPrompt);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const action = parseUndoShortcut(e);
+      if (!action || isEditableTarget(e.target)) return;
+      const s = useSceneStore.getState();
+      // undo()/redo() mengembalikan label snapshot (string) atau null bila stack kosong.
+      const label = action === "undo" ? s.undo() : s.redo();
+      if (label !== null) e.preventDefault();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const objCount = flattenNodes(scene.nodes).length;
   const appCls = ["app", railOpen ? "rail-open" : ""]
