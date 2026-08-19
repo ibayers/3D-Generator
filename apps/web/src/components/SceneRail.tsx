@@ -92,6 +92,10 @@ const LAYER2_TOOLS = [
     comp: "= extrude dinding + band + atap",
   },
   { tn: "create_road(path, width)", comp: "= extrude ×1" },
+  {
+    tn: "create_tree(type, height)",
+    comp: "= extrude (batang + kanopi)",
+  },
 ];
 
 const TOOL_TAGS = [

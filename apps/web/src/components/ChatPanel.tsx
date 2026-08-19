@@ -21,6 +21,7 @@ const STARTER_CHIPS = [
   "Buat rumah 2 lantai dengan atap pelana",
   "Buat jalan sepanjang 8 meter",
   "Ubah material objek pertama jadi hijau",
+  "Buat pohon pinus setinggi 5 meter",
 ];
 
 function paramValue(v: unknown): string {
