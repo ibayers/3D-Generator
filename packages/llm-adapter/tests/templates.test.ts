@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { applyCreateHouse } from "../src/templates/createHouse";
+import { applyCreateTree } from "../src/templates/createTree";
 import type { SceneNode } from "@asset-studio/scene-engine";
 
 describe("applyCreateHouse", () => {
@@ -214,5 +215,90 @@ describe("applyCreateRoad", () => {
     expect(() =>
       applyCreateRoad({ id: "r", path: [[0, 0]], width: 1 }, scene)
     ).toThrow(/at least 2 points/);
+  });
+});
+
+describe("applyCreateTree", () => {
+  it("conifer (default): trunk + 3 canopy tiers, all extrude nodes", () => {
+    const { newNodes } = applyCreateTree(
+      { id: "tree-01", position: [2, 0, 3] },
+      { nodes: [] },
+    );
+    expect(newNodes.map((n) => n.id)).toEqual([
+      "tree-01-trunk",
+      "tree-01-canopy-1",
+      "tree-01-canopy-2",
+      "tree-01-canopy-3",
+    ]);
+    expect(newNodes.every((n) => n.type === "extrude")).toBe(true);
+    expect(newNodes.every((n) => n.children.length === 0)).toBe(true);
+  });
+
+  it("conifer: canopy tier radii decrease upward and canopy sits above trunk base", () => {
+    const H = 6;
+    const { newNodes } = applyCreateTree(
+      { id: "t", position: [0, 0, 0], height: H },
+      { nodes: [] },
+    );
+    // parameters is a union type — cast helpers keep tsc strict happy.
+    const depth = (n: SceneNode) => n.parameters.depth as number;
+    const shape = (n: SceneNode) => n.parameters.shape as [number, number][];
+    const radius = (n: SceneNode) =>
+      Math.max(...shape(n).map(([x, y]) => Math.hypot(x, y)));
+    const [trunk, c1, c2, c3] = newNodes;
+    expect(radius(trunk!)).toBeLessThan(radius(c1!));
+    expect(radius(c1!)).toBeGreaterThan(radius(c2!));
+    expect(radius(c2!)).toBeGreaterThan(radius(c3!));
+    // All parts at/above ground and the tree top stays within H.
+    const tops = newNodes.map((n) => n.transform.position[1] + depth(n));
+    expect(Math.min(...tops)).toBeGreaterThanOrEqual(0);
+    expect(Math.max(...tops)).toBeLessThanOrEqual(H);
+    // Trunk starts at the ground.
+    expect(trunk!.transform.position[1]).toBe(0);
+  });
+
+  it("broadleaf: trunk + 2 canopy discs", () => {
+    const { newNodes } = applyCreateTree(
+      { id: "b", position: [1, 0, 1], type: "broadleaf" },
+      { nodes: [] },
+    );
+    expect(newNodes).toHaveLength(3);
+    expect(newNodes.map((n) => n.id)).toEqual([
+      "b-trunk",
+      "b-canopy-1",
+      "b-canopy-2",
+    ]);
+  });
+
+  it("position offsets every node; colors default and overridable", () => {
+    const [x, y, z] = [5, 1, -2];
+    const { newNodes } = applyCreateTree(
+      { id: "p", position: [x, y, z] },
+      { nodes: [] },
+    );
+    for (const n of newNodes) {
+      expect(n.transform.position[0]).toBe(x);
+      expect(n.transform.position[2]).toBe(z);
+    }
+    const trunk = newNodes[0]!;
+    expect(trunk.material?.color).toBe("#6b4a2f");
+    const canopy = newNodes[1]!;
+    expect(canopy.material?.color).toBe("#2f7d3a");
+
+    const custom = applyCreateTree(
+      { id: "c", position: [0, 0, 0], trunkColor: "#111111", canopyColor: "#222222" },
+      { nodes: [] },
+    );
+    expect(custom.newNodes[0]!.material?.color).toBe("#111111");
+    expect(custom.newNodes[1]!.material?.color).toBe("#222222");
+  });
+
+  it("height is clamped to a sane minimum", () => {
+    const { newNodes } = applyCreateTree(
+      { id: "tiny", position: [0, 0, 0], height: 0.01 },
+      { nodes: [] },
+    );
+    const trunk = newNodes[0]!;
+    expect(trunk.parameters.depth as number).toBeGreaterThanOrEqual(0.3);
   });
 });

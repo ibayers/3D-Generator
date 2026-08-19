@@ -54,3 +54,14 @@ export const createRoadToolInputSchema = z.object({
   color: z.string().optional(),
 });
 export type CreateRoadToolInput = z.infer<typeof createRoadToolInputSchema>;
+
+export const createTreeToolInputSchema = z.object({
+  id: z.string(),
+  position: z.tuple([z.number(), z.number(), z.number()]),
+  /** Default "conifer" in the template. */
+  type: z.enum(['conifer', 'broadleaf']).optional(),
+  height: z.number().positive().optional(),
+  trunkColor: z.string().optional(),
+  canopyColor: z.string().optional(),
+});
+export type CreateTreeToolInput = z.infer<typeof createTreeToolInputSchema>;

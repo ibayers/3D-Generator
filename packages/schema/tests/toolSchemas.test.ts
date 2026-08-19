@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createHouseToolInputSchema } from '../src/toolSchemas';
+import { createHouseToolInputSchema, createTreeToolInputSchema } from '../src/toolSchemas';
 
 describe('createHouseToolInputSchema', () => {
   it('accepts id + position only (everything else defaulted)', () => {
@@ -37,5 +37,27 @@ describe('createHouseToolInputSchema', () => {
     expect(
       createHouseToolInputSchema.safeParse({ id: 'h', position: [0, 0, 0], size: [4, 3] }).success
     ).toBe(false);
+  });
+});
+
+describe('createTreeToolInputSchema', () => {
+  it('accepts a minimal valid input', () => {
+    const parsed = createTreeToolInputSchema.safeParse({ id: 't1', position: [1, 0, 2] });
+    expect(parsed.success).toBe(true);
+  });
+
+  it('rejects unknown type and non-positive height', () => {
+    const badType = createTreeToolInputSchema.safeParse({
+      id: 't',
+      position: [0, 0, 0],
+      type: 'palm',
+    });
+    expect(badType.success).toBe(false);
+    const badHeight = createTreeToolInputSchema.safeParse({
+      id: 't',
+      position: [0, 0, 0],
+      height: -1,
+    });
+    expect(badHeight.success).toBe(false);
   });
 });
