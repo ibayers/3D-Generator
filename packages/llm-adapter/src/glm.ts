@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { ADAPTER_DEFAULTS } from "./defaults";
 import type { ChatMessage, ChatResult, LLMAdapter } from "./types";
 import type { ToolDefinition } from "./tools";
 
@@ -50,8 +51,10 @@ export function createGLMAdapter(opts: GLMAdapterOptions): LLMAdapter {
     apiKey: opts.apiKey,
     baseURL: opts.baseURL ?? GLM_BASE_URL,
     dangerouslyAllowBrowser: true,
+    timeout: ADAPTER_DEFAULTS.timeoutMs,
+    maxRetries: ADAPTER_DEFAULTS.sdkMaxRetries,
   });
-  const maxTokens = opts.maxTokens ?? 512;
+  const maxTokens = opts.maxTokens ?? ADAPTER_DEFAULTS.maxTokens;
 
   return {
     async chat(

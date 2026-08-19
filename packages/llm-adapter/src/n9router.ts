@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { ADAPTER_DEFAULTS } from "./defaults";
 import type { ChatMessage, ChatResult, LLMAdapter } from "./types";
 import type { ToolDefinition } from "./tools";
 
@@ -48,8 +49,10 @@ export function createN9RouterAdapter(
     apiKey: opts.apiKey,
     baseURL: opts.baseURL ?? N9ROUTER_DEFAULT_BASE_URL,
     dangerouslyAllowBrowser: true,
+    timeout: ADAPTER_DEFAULTS.timeoutMs,
+    maxRetries: ADAPTER_DEFAULTS.sdkMaxRetries,
   });
-  const maxTokens = opts.maxTokens ?? 1024;
+  const maxTokens = opts.maxTokens ?? ADAPTER_DEFAULTS.maxTokens;
 
   return {
     async chat(

@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { ADAPTER_DEFAULTS } from "./defaults";
 import type { ChatMessage, ChatResult, LLMAdapter } from "./types";
 import type { ToolDefinition } from "./tools";
 
@@ -13,8 +14,10 @@ export function createClaudeAdapter(opts: ClaudeAdapterOptions): LLMAdapter {
   const client = new Anthropic({
     apiKey: opts.apiKey,
     dangerouslyAllowBrowser: true, // PRD §10: client-side direct call
+    timeout: ADAPTER_DEFAULTS.timeoutMs,
+    maxRetries: ADAPTER_DEFAULTS.sdkMaxRetries,
   });
-  const maxTokens = opts.maxTokens ?? 1024;
+  const maxTokens = opts.maxTokens ?? ADAPTER_DEFAULTS.maxTokens;
 
   return {
     async chat(messages: ChatMessage[], systemPrompt: string): Promise<ChatResult> {
