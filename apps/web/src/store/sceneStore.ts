@@ -4,10 +4,15 @@ import { create } from 'zustand';
 import {
   executeToolCall,
   type Scene,
+  type SceneNode,
   type ToolCall,
 } from '@asset-studio/scene-engine';
 
 const EMPTY_SCENE: Scene = { version: '0.1', nodes: [] };
+
+function collectNodeIds(node: SceneNode): string[] {
+  return [node.id, ...node.children.flatMap((c) => collectNodeIds(c))];
+}
 
 interface Snapshot {
   scene: Scene;
@@ -106,13 +111,15 @@ export const useSceneStore = create<SceneState>((set, get) => ({
 
   deleteNode: (id) => {
     const { scene, history, future, selectedId, hiddenIds } = get();
-    if (!scene.nodes.some((n) => n.id === id)) return false;
+    const target = scene.nodes.find((n) => n.id === id);
+    if (!target) return false;
+    const removedIds = new Set(collectNodeIds(target));
     set({
       scene: { ...scene, nodes: scene.nodes.filter((n) => n.id !== id) },
       history: [...history, { scene, label: `delete:${id}` }],
       future: [],
       selectedId: selectedId === id ? null : selectedId,
-      hiddenIds: hiddenIds.filter((h) => h !== id),
+      hiddenIds: hiddenIds.filter((h) => !removedIds.has(h)),
       lastAction: `delete:${id} · snapshot #${history.length + 1}`,
     });
     return true;

@@ -83,4 +83,18 @@ describe("deleteNode", () => {
       useSceneStore.getState().scene.nodes.some((n) => n.id === target.id),
     ).toBe(true);
   });
+
+  it("purges hidden entries of deleted children", () => {
+    const parent = { ...node("parent"), children: [node("kid")] };
+    useSceneStore.setState({
+      scene: { version: "0.1", nodes: [parent, node("b")] },
+    });
+    useSceneStore.getState().toggleHidden("kid");
+
+    useSceneStore.getState().deleteNode("parent");
+
+    const s = useSceneStore.getState();
+    expect(s.hiddenIds).not.toContain("kid");
+    expect(s.scene.nodes.map((n) => n.id)).toEqual(["b"]);
+  });
 });
