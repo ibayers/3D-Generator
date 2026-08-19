@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { MODELS, useChatStore, type ChatEntry } from "../store/chatStore";
+import { useChatStore, type ChatEntry } from "../store/chatStore";
 import { useLlmStore, type Provider } from "../store/llmStore";
 import { useSceneStore } from "../store/sceneStore";
 
@@ -91,6 +91,7 @@ export default function ChatPanel() {
   const clearClaudeApiKey = useLlmStore((s) => s.clearClaudeApiKey);
   const clearGlmApiKey = useLlmStore((s) => s.clearGlmApiKey);
   const clearN9RouterApiKey = useLlmStore((s) => s.clearN9RouterApiKey);
+  const model = useLlmStore((s) => s.models[provider]);
 
   const scene = useSceneStore((s) => s.scene);
 
@@ -142,7 +143,7 @@ export default function ChatPanel() {
         <span className="dotlive" />
         <b>Asisten Adegan</b>
         <span className="provider-chip num">
-          {`${MODELS[provider]} · tool-calling`}
+          {`${model} · tool-calling`}
         </span>
       </div>
 
