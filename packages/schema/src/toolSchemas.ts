@@ -37,7 +37,11 @@ export const booleanToolInputSchema = z.object({
 export const createHouseToolInputSchema = z.object({
   id: z.string(),
   position: z.tuple([z.number(), z.number(), z.number()]),
-  size: z.tuple([z.number(), z.number(), z.number()]),
+  /** [width, height, depth]; default [8, floors*3, 6] in the template. */
+  size: z.tuple([z.number(), z.number(), z.number()]).optional(),
+  floors: z.number().int().min(1).max(3).optional(),
+  roofStyle: z.enum(['flat', 'gable']).optional(),
+  roofHeight: z.number().positive().optional(),
   wallColor: z.string().optional(),
   roofColor: z.string().optional(),
 });
