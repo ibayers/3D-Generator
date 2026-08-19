@@ -3,7 +3,14 @@ import type { SceneNode, Vec3 } from "@asset-studio/scene-engine";
 export interface CreateHouseInput {
   id: string;
   position: [number, number, number];
-  size: [number, number, number]; // [width, height, depth]
+  /** [width, height, depth]; defaults to [8, floors*3, 6] when omitted. */
+  size?: [number, number, number];
+  /** Number of storeys (1-3); default 1. Drives default height. */
+  floors?: number;
+  /** Roof shape; default gable (rendered gable geometry lands with the gable template). */
+  roofStyle?: "flat" | "gable";
+  /** Gable ridge height; default max(1, width*0.22). */
+  roofHeight?: number;
   wallColor?: string;
   roofColor?: string;
 }
@@ -38,7 +45,7 @@ export function applyCreateHouse(
   input: CreateHouseInput,
   _scene: { nodes: SceneNode[] }
 ): CreateHouseResult {
-  const [w, h, d] = input.size;
+  const [w, h, d] = input.size ?? [8, (input.floors ?? 1) * 3, 6];
   const [px, py, pz] = input.position;
   const wallColor = input.wallColor ?? "#cccccc";
   const roofColor = input.roofColor ?? "#882222";
