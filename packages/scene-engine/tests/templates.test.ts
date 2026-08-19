@@ -15,14 +15,17 @@ describe('toolExecutor template integration', () => {
         id: 'h1',
         position: [0, 0, 0],
         size: [4, 3, 4],
+        floors: 2,
+        roofStyle: 'gable',
       },
     });
     expect(res.ok).toBe(true);
     if (!res.ok) return;
-    // ponytail: windows removed (M4 CSG); only walls + roof remain
     expect(res.scene.nodes.length).toBeGreaterThanOrEqual(2);
     expect(res.scene.nodes.some((n) => n.id === 'h1-walls')).toBe(true);
-    expect(res.scene.nodes.some((n) => n.id === 'h1-roof')).toBe(true);
+    expect(res.scene.nodes.some((n) => n.id === 'h1-roof-l')).toBe(true);
+    expect(res.scene.nodes.some((n) => n.id === 'h1-roof-r')).toBe(true);
+    expect(res.scene.nodes.some((n) => n.id === 'h1-floor-1')).toBe(true);
     // original scene is not mutated (immutable pattern)
     expect(scene.nodes).toHaveLength(0);
   });
