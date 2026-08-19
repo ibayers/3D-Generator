@@ -2,6 +2,7 @@
 
 import { useState, type ReactElement } from "react";
 import { useSceneStore } from "../store/sceneStore";
+import { useChatStore } from "../store/chatStore";
 import type { SceneNode } from "@asset-studio/scene-engine";
 
 const CubeIcon = (
@@ -43,6 +44,20 @@ const EyeOffIcon = (
   >
     <path d="M2 12s3.5-6 10-6c1.8 0 3.4.5 4.8 1.2M22 12s-3.5 6-10 6c-1.8 0-3.4-.5-4.8-1.2" />
     <path d="M4 4l16 16" />
+  </svg>
+);
+
+const TrashIcon = (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+  >
+    <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z" />
+    <path d="M10 11v6M14 11v6" />
   </svg>
 );
 
@@ -102,6 +117,8 @@ export default function SceneRail() {
   const hiddenIds = useSceneStore((s) => s.hiddenIds);
   const select = useSceneStore((s) => s.select);
   const toggleHidden = useSceneStore((s) => s.toggleHidden);
+  const deleteNode = useSceneStore((s) => s.deleteNode);
+  const pushNote = useChatStore((s) => s.pushNote);
 
   const [tab, setTab] = useState<"scene" | "tools">("scene");
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
@@ -165,6 +182,18 @@ export default function SceneRail() {
           }}
         >
           {isHidden(node.id) ? EyeOffIcon : EyeIcon}
+        </button>
+        <button
+          className="eyebtn"
+          title="Hapus objek"
+          aria-label={`Hapus ${node.name}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            const ok = deleteNode(node.id);
+            if (ok) pushNote(`hapus ${node.name} — Ctrl+Z untuk urungkan`);
+          }}
+        >
+          {TrashIcon}
         </button>
       </div>
     );
