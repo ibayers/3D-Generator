@@ -114,6 +114,10 @@ export default function ChatPanel() {
   const thinking = status === "thinking";
 
   const [elapsed, setElapsed] = useState(0);
+  // Typed model text belongs to the provider it was typed for.
+  useEffect(() => {
+    setModelInput("");
+  }, [provider]);
   useEffect(() => {
     if (status !== "thinking") {
       setElapsed(0);
