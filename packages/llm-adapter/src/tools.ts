@@ -11,7 +11,7 @@ export interface ToolDefinition {
   };
 }
 
-export const SYSTEM_PROMPT = `You are a 3D scene orchestrator. You compose primitive tools (extrude, boolean, array, transform, set_material) and template tools (create_house, create_road) to build scenes described by the user.
+export const SYSTEM_PROMPT = `You are a 3D scene orchestrator. You compose primitive tools (extrude, boolean, array, transform, set_material) and template tools (create_house, create_road, create_tree) to build scenes described by the user.
 
 Rules:
 - Always call exactly one tool per turn.
@@ -178,6 +178,36 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
         color: { type: "string" },
       },
       required: ["id", "path", "width"],
+    },
+  },
+  {
+    name: "create_tree",
+    description:
+      "Template: build a low-poly tree composed of extruded polygons. " +
+      "Defaults: type=conifer (pinus, 3 tapering canopy tiers), height=6.",
+    input_schema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "Tree group id" },
+        position: {
+          type: "array",
+          items: { type: "number" },
+          description: "[x, y, z] center of the trunk base (y = base)",
+        },
+        type: {
+          type: "string",
+          enum: ["conifer", "broadleaf"],
+          description: "conifer = pinus-like tiers; broadleaf = rounded crown; default conifer",
+        },
+        height: {
+          type: "number",
+          exclusiveMinimum: 0,
+          description: "Total tree height in meters; default 6",
+        },
+        trunkColor: { type: "string" },
+        canopyColor: { type: "string" },
+      },
+      required: ["id", "position"],
     },
   },
 ];

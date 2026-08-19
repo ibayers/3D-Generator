@@ -16,9 +16,29 @@ describe("TOOL_DEFINITIONS", () => {
   });
 });
 
+describe("create_tree definition", () => {
+  const tree = TOOL_DEFINITIONS.find((t) => t.name === "create_tree");
+
+  it("exists with required fields", () => {
+    expect(tree).toBeDefined();
+    expect(tree?.description).toContain("tree");
+    expect(tree?.input_schema.required).toEqual(["id", "position"]);
+  });
+
+  it("documents type enum and height", () => {
+    const props = tree?.input_schema.properties as Record<string, { enum?: string[] }>;
+    expect(props.type?.enum).toEqual(["conifer", "broadleaf"]);
+    expect(props.height).toBeDefined();
+  });
+});
+
 describe("SYSTEM_PROMPT", () => {
   it("documents the tool-result feedback loop and round cap", () => {
     expect(SYSTEM_PROMPT).toMatch(/result in the next message/);
     expect(SYSTEM_PROMPT).toMatch(/at most \d+ tool rounds/);
+  });
+
+  it("SYSTEM_PROMPT mentions create_tree", () => {
+    expect(SYSTEM_PROMPT).toContain("create_tree");
   });
 });
