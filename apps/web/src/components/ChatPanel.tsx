@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useChatStore, type ChatEntry } from "../store/chatStore";
-import { useLlmStore, type Provider } from "../store/llmStore";
+import { DEFAULT_MODELS, useLlmStore, type Provider } from "../store/llmStore";
 import { useSceneStore } from "../store/sceneStore";
 
 const PROVIDER_LABEL: Record<Provider, string> = {
@@ -92,10 +92,12 @@ export default function ChatPanel() {
   const clearGlmApiKey = useLlmStore((s) => s.clearGlmApiKey);
   const clearN9RouterApiKey = useLlmStore((s) => s.clearN9RouterApiKey);
   const model = useLlmStore((s) => s.models[provider]);
+  const setModel = useLlmStore((s) => s.setModel);
 
   const scene = useSceneStore((s) => s.scene);
 
   const [input, setInput] = useState("");
+  const [modelInput, setModelInput] = useState("");
   const [keyInput, setKeyInput] = useState("");
   const threadRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -110,6 +112,20 @@ export default function ChatPanel() {
   }, [entries.length, status]);
 
   const thinking = status === "thinking";
+
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    if (status !== "thinking") {
+      setElapsed(0);
+      return;
+    }
+    const t0 = performance.now();
+    const id = window.setInterval(
+      () => setElapsed((performance.now() - t0) / 1000),
+      100,
+    );
+    return () => window.clearInterval(id);
+  }, [status]);
   const hasUserEntry = entries.some((e) => e.kind === "user");
   const tokenEstimate = Math.round(JSON.stringify(scene).length / 4);
 
@@ -145,6 +161,41 @@ export default function ChatPanel() {
         <span className="provider-chip num">
           {`${model} · tool-calling`}
         </span>
+      </div>
+
+      <div className="keyform">
+        <div className="keyrow">
+          <input
+            className="num"
+            type="text"
+            value={modelInput}
+            onChange={(e) => setModelInput(e.target.value)}
+            placeholder={`model · default ${DEFAULT_MODELS[provider]}`}
+            aria-label={`Override model ${PROVIDER_LABEL[provider]}`}
+            style={{ flex: 1 }}
+          />
+          <button
+            className="ghost"
+            type="button"
+            disabled={thinking || !modelInput.trim()}
+            onClick={() => {
+              setModel(provider, modelInput.trim());
+              setModelInput("");
+            }}
+          >
+            set model
+          </button>
+          {model !== DEFAULT_MODELS[provider] && (
+            <button
+              className="ghost"
+              type="button"
+              disabled={thinking}
+              onClick={() => setModel(provider, "")}
+            >
+              reset
+            </button>
+          )}
+        </div>
       </div>
 
       {!apiKey && (
@@ -209,7 +260,7 @@ export default function ChatPanel() {
               <i />
               <i />
             </span>
-            <span>menyusun rencana…</span>
+            <span>{`menyusun rencana… ${elapsed.toFixed(1)}s`}</span>
           </div>
         )}
       </div>

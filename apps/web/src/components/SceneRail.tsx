@@ -72,8 +72,11 @@ const LAYER1_TOOLS = [
 ];
 
 const LAYER2_TOOLS = [
-  { tn: "create_house(floors, roof_style)", comp: "= extrude ×2 + array" },
-  { tn: "create_road(length, width)", comp: "= extrude ×1" },
+  {
+    tn: "create_house(floors, roof_style)",
+    comp: "= extrude dinding + band + atap",
+  },
+  { tn: "create_road(path, width)", comp: "= extrude ×1" },
 ];
 
 const TOOL_TAGS = [
