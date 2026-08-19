@@ -101,17 +101,7 @@ export const useLlmStore = create<LlmState>((set, get) => ({
   models: { ...DEFAULT_MODELS },
   setModel: (provider, model) => {
     const trimmed = model.trim();
-    if (typeof window !== 'undefined') {
-      try {
-        if (trimmed) {
-          window.localStorage.setItem(MODEL_STORAGE_PREFIX + provider, trimmed);
-        } else {
-          window.localStorage.removeItem(MODEL_STORAGE_PREFIX + provider);
-        }
-      } catch {
-        // ignore quota / privacy errors
-      }
-    }
+    writeKey(MODEL_STORAGE_PREFIX + provider, trimmed);
     set((s) => ({
       models: {
         ...s.models,
@@ -160,16 +150,8 @@ export const useLlmStore = create<LlmState>((set, get) => ({
     const glmApiKey = readKey(GLM_KEY_STORAGE);
     const n9routerApiKey = readKey(N9ROUTER_KEY_STORAGE);
     const provider = readProvider();
-    const readModel = (p: Provider): string => {
-      try {
-        return (
-          window.localStorage.getItem(MODEL_STORAGE_PREFIX + p) ??
-          DEFAULT_MODELS[p]
-        );
-      } catch {
-        return DEFAULT_MODELS[p];
-      }
-    };
+    const readModel = (p: Provider): string =>
+      readKey(MODEL_STORAGE_PREFIX + p) || DEFAULT_MODELS[p];
     const models: Record<Provider, string> = {
       claude: readModel('claude'),
       glm: readModel('glm'),
