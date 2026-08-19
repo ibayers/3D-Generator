@@ -33,6 +33,7 @@ interface SceneState {
   redo: () => string | null;
   select: (id: string | null) => void;
   toggleHidden: (id: string) => void;
+  deleteNode: (id: string) => boolean;
   setTriCount: (count: number) => void;
   requestExport: () => void;
   reset: () => void;
@@ -101,6 +102,20 @@ export const useSceneStore = create<SceneState>((set, get) => ({
         ? hiddenIds.filter((h) => h !== id)
         : [...hiddenIds, id],
     });
+  },
+
+  deleteNode: (id) => {
+    const { scene, history, future, selectedId, hiddenIds } = get();
+    if (!scene.nodes.some((n) => n.id === id)) return false;
+    set({
+      scene: { ...scene, nodes: scene.nodes.filter((n) => n.id !== id) },
+      history: [...history, { scene, label: `delete:${id}` }],
+      future: [],
+      selectedId: selectedId === id ? null : selectedId,
+      hiddenIds: hiddenIds.filter((h) => h !== id),
+      lastAction: `delete:${id} · snapshot #${history.length + 1}`,
+    });
+    return true;
   },
 
   setTriCount: (count) => set({ triCount: count }),
