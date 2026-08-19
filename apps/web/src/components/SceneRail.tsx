@@ -106,6 +106,7 @@ const TOOL_TAGS = [
   "set_material",
   "create_house",
   "create_road",
+  "create_tree",
 ];
 
 function childGen(node: SceneNode): string {
