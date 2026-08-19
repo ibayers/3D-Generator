@@ -176,6 +176,9 @@ export default function SceneRail() {
           className="eyebtn"
           title="Tampil / sembunyikan"
           aria-label={`Tampilkan ${node.name}`}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") e.stopPropagation();
+          }}
           onClick={(e) => {
             e.stopPropagation();
             toggleHidden(node.id);
@@ -187,6 +190,9 @@ export default function SceneRail() {
           className="eyebtn"
           title="Hapus objek"
           aria-label={`Hapus ${node.name}`}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") e.stopPropagation();
+          }}
           onClick={(e) => {
             e.stopPropagation();
             const ok = deleteNode(node.id);
