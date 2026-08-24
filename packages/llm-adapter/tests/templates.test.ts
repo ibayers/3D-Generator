@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { applyCreateHouse } from "../src/templates/createHouse";
 import { applyCreateTree } from "../src/templates/createTree";
+import { applyCreateCharacter } from "../src/templates/createCharacter";
 import type { SceneNode } from "@asset-studio/scene-engine";
 
 describe("applyCreateHouse", () => {
@@ -300,5 +301,78 @@ describe("applyCreateTree", () => {
     );
     const trunk = newNodes[0]!;
     expect(trunk.parameters.depth as number).toBeGreaterThanOrEqual(0.3);
+  });
+});
+
+describe('applyCreateCharacter', () => {
+  const EMPTY = { nodes: [] };
+
+  it('emits one root (torso) with six children', () => {
+    const { newNodes } = applyCreateCharacter(
+      { id: 'char-01', position: [0, 0, 0] },
+      EMPTY,
+    );
+    expect(newNodes).toHaveLength(1);
+    const root = newNodes[0]!;
+    expect(root.id).toBe('char-01');
+    expect(root.children.map((c) => c.id).sort()).toEqual([
+      'char-01-arm-l',
+      'char-01-arm-r',
+      'char-01-hair',
+      'char-01-head',
+      'char-01-leg-l',
+      'char-01-leg-r',
+    ]);
+  });
+
+  it('keeps every part within [0, height] for all builds', () => {
+    for (const build of ['slim', 'regular', 'stocky'] as const) {
+      const h = 1.7;
+      const { newNodes } = applyCreateCharacter(
+        { id: 'c', position: [0, 0, 0], height: h, build },
+        EMPTY,
+      );
+      const parts = [newNodes[0]!, ...newNodes[0]!.children];
+      for (const p of parts) {
+        const base = p.transform.position[1] as number;
+        const depth = p.parameters.depth as number;
+        expect(base).toBeGreaterThanOrEqual(0);
+        expect(base + depth).toBeLessThanOrEqual(h + 1e-9);
+      }
+    }
+  });
+
+  it('applies default colors per part and honors overrides', () => {
+    const def = applyCreateCharacter({ id: 'c', position: [0, 0, 0] }, EMPTY);
+    const rootDef = def.newNodes[0]!;
+    const byId = (id: string) =>
+      [rootDef, ...rootDef.children].find((n) => n.id === id)!;
+    expect(byId('c').material?.color).toBe('#4a6fa5'); // shirt torso
+    expect(byId('c-leg-l').material?.color).toBe('#2f3b4c');
+    expect(byId('c-head').material?.color).toBe('#e0ac69');
+    expect(byId('c-hair').material?.color).toBe('#3b2a20');
+
+    const custom = applyCreateCharacter(
+      { id: 'c', position: [0, 0, 0], shirtColor: '#ff0000' },
+      EMPTY,
+    );
+    expect(custom.newNodes[0]!.material?.color).toBe('#ff0000');
+  });
+
+  it('clamps height into [0.5, 3]', () => {
+    const tall = applyCreateCharacter({ id: 'c', position: [0, 0, 0], height: 99 }, EMPTY);
+    expect(tall.newNodes[0]!.parameters.depth as number).toBeCloseTo(3 * 0.32, 5);
+    const tiny = applyCreateCharacter({ id: 'c', position: [0, 0, 0], height: 0.01 }, EMPTY);
+    expect(tiny.newNodes[0]!.parameters.depth as number).toBeCloseTo(0.5 * 0.32, 5);
+  });
+
+  it('widens torso by build', () => {
+    const slim = applyCreateCharacter({ id: 'c', position: [0, 0, 0], build: 'slim' }, EMPTY);
+    const stocky = applyCreateCharacter({ id: 'c', position: [0, 0, 0], build: 'stocky' }, EMPTY);
+    const w = (r: { newNodes: SceneNode[] }) => {
+      const shape = r.newNodes[0]!.parameters.shape as [number, number][];
+      return shape[1]![0]! - shape[0]![0]!;
+    };
+    expect(w(stocky)).toBeGreaterThan(w(slim));
   });
 });
