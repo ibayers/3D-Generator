@@ -88,3 +88,42 @@ describe('create_tree', () => {
     expect(result.error.code).toBe('INVALID_INPUT');
   });
 });
+
+describe('create_character', () => {
+  it('adds one root node carrying six children', () => {
+    const result = executeToolCall(emptyScene(), {
+      name: 'create_character',
+      input: { id: 'char-01', position: [1, 0, 1], height: 1.75 },
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.scene.nodes).toHaveLength(1);
+    expect(result.scene.nodes[0]!.children).toHaveLength(6);
+  });
+
+  it('upserts by id — re-invocation replaces, not appends', () => {
+    const first = executeToolCall(emptyScene(), {
+      name: 'create_character',
+      input: { id: 'char-01', position: [0, 0, 0] },
+    });
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
+    const second = executeToolCall(first.scene, {
+      name: 'create_character',
+      input: { id: 'char-01', position: [0, 0, 0], build: 'stocky' },
+    });
+    expect(second.ok).toBe(true);
+    if (!second.ok) return;
+    expect(second.scene.nodes).toHaveLength(1);
+  });
+
+  it('rejects invalid build with INVALID_INPUT', () => {
+    const result = executeToolCall(emptyScene(), {
+      name: 'create_character',
+      input: { id: 'c', position: [0, 0, 0], build: 'round' },
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('INVALID_INPUT');
+  });
+});

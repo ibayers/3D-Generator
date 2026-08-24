@@ -9,11 +9,13 @@ import {
   applyCreateHouse,
   applyCreateRoad,
   applyCreateTree,
+  applyCreateCharacter,
 } from '@asset-studio/llm-adapter';
 import {
   createHouseToolInputSchema,
   createRoadToolInputSchema,
   createTreeToolInputSchema,
+  createCharacterToolInputSchema,
 } from '@asset-studio/schema';
 
 // ponytail: templates emit deterministic IDs from input.id, so a retry or
@@ -89,6 +91,22 @@ export function executeToolCall(
       return {
         ok: true,
         scene: { ...scene, nodes: [...kept, ...result.newNodes] },
+      };
+    }
+    case 'create_character': {
+      const parsed = createCharacterToolInputSchema.safeParse(call.input);
+      if (!parsed.success) {
+        return {
+          ok: false,
+          error: { code: 'INVALID_INPUT', message: parsed.error.message },
+        };
+      }
+      const result = applyCreateCharacter(parsed.data, scene);
+      // Single root node — exact-id upsert is sufficient (unlike create_tree,
+      // whose variants emit different child counts).
+      return {
+        ok: true,
+        scene: { ...scene, nodes: upsertNodes(scene.nodes, result.newNodes) },
       };
     }
     default:
