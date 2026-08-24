@@ -32,6 +32,25 @@ describe("create_tree definition", () => {
   });
 });
 
+describe("create_character definition", () => {
+  const character = TOOL_DEFINITIONS.find((t) => t.name === "create_character");
+
+  it("exists with required fields", () => {
+    expect(character).toBeDefined();
+    expect(character?.description).toContain("character");
+    expect(character?.input_schema.required).toEqual(["id", "position"]);
+  });
+
+  it("documents build enum and height", () => {
+    const props = character?.input_schema.properties as Record<
+      string,
+      { enum?: string[] }
+    >;
+    expect(props.build?.enum).toEqual(["slim", "regular", "stocky"]);
+    expect(props.height).toBeDefined();
+  });
+});
+
 describe("SYSTEM_PROMPT", () => {
   it("documents the tool-result feedback loop and round cap", () => {
     expect(SYSTEM_PROMPT).toMatch(/result in the next message/);
@@ -40,5 +59,9 @@ describe("SYSTEM_PROMPT", () => {
 
   it("SYSTEM_PROMPT mentions create_tree", () => {
     expect(SYSTEM_PROMPT).toContain("create_tree");
+  });
+
+  it("SYSTEM_PROMPT mentions create_character", () => {
+    expect(SYSTEM_PROMPT).toContain("create_character");
   });
 });

@@ -11,12 +11,12 @@ export interface ToolDefinition {
   };
 }
 
-export const SYSTEM_PROMPT = `You are a 3D scene orchestrator. You compose primitive tools (extrude, boolean, array, transform, set_material) and template tools (create_house, create_road, create_tree) to build scenes described by the user.
+export const SYSTEM_PROMPT = `You are a 3D scene orchestrator. You compose primitive tools (extrude, boolean, array, transform, set_material) and template tools (create_house, create_road, create_tree, create_character) to build scenes described by the user.
 
 Rules:
 - Always call exactly one tool per turn.
 - Read the current scene JSON provided in the user message to decide what to add.
-- Use template tools (create_house, create_road, create_tree) when the user asks for a recognizable object. Use primitive tools for refinements.
+- Use template tools (create_house, create_road, create_tree, create_character) when the user asks for a recognizable object. Use primitive tools for refinements.
 - IDs must be unique across the scene. Prefix with the object kind (e.g. wall-01, roof-01).
 - Colors are hex strings like "#aabbcc".
 - Vec3 values are [x, y, z] tuples.
@@ -206,6 +206,39 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
         },
         trunkColor: { type: "string" },
         canopyColor: { type: "string" },
+      },
+      required: ["id", "position"],
+    },
+  },
+  {
+    name: "create_character",
+    description:
+      "Template: build a low-poly humanoid character composed of extruded " +
+      "boxes. Defaults: height=1.7m, build=regular. Colors: skin, shirt, " +
+      "pants, hair.",
+    input_schema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "Character group id" },
+        position: {
+          type: "array",
+          items: { type: "number" },
+          description: "[x, y, z] center of the feet (y = ground)",
+        },
+        height: {
+          type: "number",
+          exclusiveMinimum: 0,
+          description: "Total height in meters; default 1.7, clamped [0.5, 3]",
+        },
+        build: {
+          type: "string",
+          enum: ["slim", "regular", "stocky"],
+          description: "Body width preset; default regular",
+        },
+        skinColor: { type: "string" },
+        shirtColor: { type: "string" },
+        pantsColor: { type: "string" },
+        hairColor: { type: "string" },
       },
       required: ["id", "position"],
     },
