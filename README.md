@@ -41,7 +41,7 @@ pnpm --filter @asset-studio/web build                                 # build pr
 
 ## Eval set (PRD §11.2)
 
-Regression set 8 prompt `(prompt → expected_tool_call)` di `packages/llm-adapter/src/eval/cases.ts`. Suite test normal **skip** eval live (offline, gratis). Saat mengubah SYSTEM_PROMPT atau tool schema, jalankan dengan key:
+Regression set 9 prompt `(prompt → expected_tool_call)` di `packages/llm-adapter/src/eval/cases.ts`. Suite test normal **skip** eval live (offline, gratis). Saat mengubah SYSTEM_PROMPT atau tool schema, jalankan dengan key:
 
 ```bash
 EVAL_PROVIDER=claude EVAL_API_KEY=sk-... pnpm --filter @asset-studio/llm-adapter eval
