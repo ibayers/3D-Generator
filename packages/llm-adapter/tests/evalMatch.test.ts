@@ -51,6 +51,7 @@ describe("evaluateCase", () => {
   it("passes on tool + args match", () => {
     const r = evaluateCase(caseMat, [tc("set_material", { nodeId: "roof-01", color: "#00ff00" })]);
     expect(r.pass).toBe(true);
+    expect(r.gotTool).toBe("set_material");
   });
 
   it("fails on wrong tool, empty calls, and bad args", () => {
