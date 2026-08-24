@@ -8,6 +8,7 @@
   "scripts": {
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
+    "eval": "vitest run tests/eval.live.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
