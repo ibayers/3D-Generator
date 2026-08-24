@@ -2,7 +2,12 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useChatStore, type ChatEntry } from "../store/chatStore";
-import { DEFAULT_MODELS, useLlmStore, type Provider } from "../store/llmStore";
+import {
+  DEFAULT_MODELS,
+  SUPPORTS_IMAGES,
+  useLlmStore,
+  type Provider,
+} from "../store/llmStore";
 import { useSceneStore } from "../store/sceneStore";
 
 const PROVIDER_LABEL: Record<Provider, string> = {
@@ -68,7 +73,15 @@ function ToolCard({ entry }: { entry: Extract<ChatEntry, { kind: "tool" }> }) {
 function EntryView({ entry }: { entry: ChatEntry }): ReactNode {
   switch (entry.kind) {
     case "user":
-      return <div className="msg-u">{entry.text}</div>;
+      return (
+        <div className="msg-u">
+          {entry.images?.[0] && (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img className="msg-thumb" src={entry.images[0]} alt="" />
+          )}
+          {entry.text}
+        </div>
+      );
     case "assistant":
       return <div className="msg-a">{entry.text}</div>;
     case "note":
@@ -102,6 +115,9 @@ export default function ChatPanel() {
   const scene = useSceneStore((s) => s.scene);
 
   const [input, setInput] = useState("");
+  const [pendingImage, setPendingImage] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const canAttach = SUPPORTS_IMAGES[provider];
   const [modelInput, setModelInput] = useState("");
   const [keyInput, setKeyInput] = useState("");
   const threadRef = useRef<HTMLDivElement>(null);
@@ -138,12 +154,30 @@ export default function ChatPanel() {
   const hasUserEntry = entries.some((e) => e.kind === "user");
   const tokenEstimate = Math.round(JSON.stringify(scene).length / 4);
 
+  const pickImage = (file: File | undefined) => {
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      useChatStore.getState().pushNote("format gambar harus jpg/png/webp");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      useChatStore.getState().pushNote("gambar maks 5 MB — kecilkan dulu");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () =>
+      setPendingImage(typeof reader.result === "string" ? reader.result : null);
+    reader.readAsDataURL(file);
+  };
+
   const submit = () => {
     const text = input.trim();
     if (!text || thinking) return;
     setInput("");
+    const image = pendingImage;
+    setPendingImage(null);
     if (textareaRef.current) textareaRef.current.style.height = "auto";
-    void sendPrompt(text);
+    void sendPrompt(text, image ? [image] : undefined);
   };
 
   const handleSaveKey = (e: React.FormEvent) => {
@@ -295,7 +329,53 @@ export default function ChatPanel() {
         {`scene JSON ≈ ${tokenEstimate} token · dikirim penuh (v1)`}
       </div>
 
+      {canAttach && pendingImage && (
+        <div className="attach-chip">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={pendingImage} alt="pratinjau lampiran" />
+          <button
+            type="button"
+            className="ghost"
+            onClick={() => setPendingImage(null)}
+            aria-label="Hapus lampiran gambar"
+          >
+            hapus
+          </button>
+        </div>
+      )}
+
       <div className="composer">
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          hidden
+          onChange={(e) => {
+            pickImage(e.target.files?.[0]);
+            e.target.value = "";
+          }}
+        />
+        {canAttach && (
+          <button
+            type="button"
+            className="ghost attach"
+            onClick={() => fileRef.current?.click()}
+            disabled={thinking}
+            title="Lampirkan gambar (provider vision)"
+            aria-label="Lampirkan gambar"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.7"
+            >
+              <path d="M21.44 11.05 12.25 20.24a6 6 0 0 1-8.49-8.49l8.57-8.57a4 4 0 1 1 5.66 5.66l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+            </svg>
+          </button>
+        )}
         <textarea
           ref={textareaRef}
           className="chat-input"
