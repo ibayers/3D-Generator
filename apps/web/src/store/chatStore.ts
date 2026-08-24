@@ -7,6 +7,7 @@ import type { ToolCall } from '@asset-studio/scene-engine';
 import {
   createClaudeAdapter,
   createGLMAdapter,
+  createGLMVisionAdapter,
   createN9RouterAdapter,
   runWithRetry,
   TOOL_DEFINITIONS,
@@ -27,12 +28,15 @@ function createAdapter(provider: string, apiKey: string): LLMAdapter {
   if (provider === 'n9router') {
     return createN9RouterAdapter({ apiKey, model, tools: TOOL_DEFINITIONS });
   }
+  if (provider === 'glm-vision') {
+    return createGLMVisionAdapter({ apiKey, model, tools: TOOL_DEFINITIONS });
+  }
   return createClaudeAdapter({ apiKey, model, tools: TOOL_DEFINITIONS });
 }
 
 /** Transkrip chat — satu union untuk bubble user/asisten, note, kartu tool, error. */
 export type ChatEntry =
-  | { kind: 'user'; text: string }
+  | { kind: 'user'; text: string; images?: string[] }
   | { kind: 'assistant'; text: string }
   | { kind: 'note'; text: string }
   | { kind: 'error'; text: string }
@@ -49,7 +53,7 @@ interface ChatState {
   entries: ChatEntry[];
   status: 'idle' | 'thinking' | 'error';
   lastError: string | null;
-  sendPrompt: (prompt: string) => Promise<void>;
+  sendPrompt: (prompt: string, images?: string[]) => Promise<void>;
   pushNote: (text: string) => void;
   reset: () => void;
 }
@@ -57,6 +61,7 @@ interface ChatState {
 function providerLabel(provider: Provider): string {
   if (provider === 'glm') return 'Z.ai (GLM)';
   if (provider === 'n9router') return '9Router';
+  if (provider === 'glm-vision') return 'GLM Vision (Z.ai standard)';
   return 'Anthropic (Claude)';
 }
 
@@ -70,11 +75,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   reset: () => set({ entries: [], status: 'idle', lastError: null }),
 
-  sendPrompt: async (prompt) => {
+  sendPrompt: async (prompt, images) => {
     const push = (entry: ChatEntry) =>
       set((s) => ({ entries: [...s.entries, entry] }));
 
-    push({ kind: 'user', text: prompt });
+    push({ kind: 'user', text: prompt, images });
 
     const llm = useLlmStore.getState();
     if (!llm.apiKey) {
@@ -96,6 +101,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         adapter,
         systemPrompt: SYSTEM_PROMPT,
         userPrompt: userPayload,
+        userImages: images,
         tools: TOOL_DEFINITIONS,
         maxRetries: MAX_RETRIES,
         maxToolRounds: MAX_TOOL_ROUNDS,

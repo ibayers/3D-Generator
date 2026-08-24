@@ -8,6 +8,7 @@ const PROVIDER_OPTIONS: { value: Provider; label: string }[] = [
   { value: "claude", label: "Claude · anthropic" },
   { value: "glm", label: "GLM · openai-compat" },
   { value: "n9router", label: "9Router · lokal-proxy" },
+  { value: "glm-vision", label: "GLM Vision · z.ai-standard" },
 ];
 
 interface TopbarProps {

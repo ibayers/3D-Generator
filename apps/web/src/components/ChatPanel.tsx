@@ -9,12 +9,14 @@ const PROVIDER_LABEL: Record<Provider, string> = {
   claude: "Claude",
   glm: "GLM (Z.ai)",
   n9router: "9Router",
+  "glm-vision": "GLM Vision (Z.ai)",
 };
 
 const PROVIDER_PLACEHOLDER: Record<Provider, string> = {
   claude: "sk-ant-…",
   glm: "kunci Z.ai…",
   n9router: "kunci 9Router…",
+  "glm-vision": "kunci Z.ai standard…",
 };
 
 const STARTER_CHIPS = [
@@ -89,9 +91,11 @@ export default function ChatPanel() {
   const setClaudeApiKey = useLlmStore((s) => s.setClaudeApiKey);
   const setGlmApiKey = useLlmStore((s) => s.setGlmApiKey);
   const setN9RouterApiKey = useLlmStore((s) => s.setN9RouterApiKey);
+  const setGlmVisionApiKey = useLlmStore((s) => s.setGlmVisionApiKey);
   const clearClaudeApiKey = useLlmStore((s) => s.clearClaudeApiKey);
   const clearGlmApiKey = useLlmStore((s) => s.clearGlmApiKey);
   const clearN9RouterApiKey = useLlmStore((s) => s.clearN9RouterApiKey);
+  const clearGlmVisionApiKey = useLlmStore((s) => s.clearGlmVisionApiKey);
   const model = useLlmStore((s) => s.models[provider]);
   const setModel = useLlmStore((s) => s.setModel);
 
@@ -148,6 +152,7 @@ export default function ChatPanel() {
     if (!trimmed) return;
     if (provider === "glm") setGlmApiKey(trimmed);
     else if (provider === "n9router") setN9RouterApiKey(trimmed);
+    else if (provider === "glm-vision") setGlmVisionApiKey(trimmed);
     else setClaudeApiKey(trimmed);
     setKeyInput("");
   };
@@ -155,6 +160,7 @@ export default function ChatPanel() {
   const handleClearKey = () => {
     if (provider === "glm") clearGlmApiKey();
     else if (provider === "n9router") clearN9RouterApiKey();
+    else if (provider === "glm-vision") clearGlmVisionApiKey();
     else clearClaudeApiKey();
   };
 
