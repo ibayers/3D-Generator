@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { createHouseToolInputSchema, createTreeToolInputSchema } from '../src/toolSchemas';
+import {
+  createHouseToolInputSchema,
+  createTreeToolInputSchema,
+  createCharacterToolInputSchema,
+} from '../src/toolSchemas';
 
 describe('createHouseToolInputSchema', () => {
   it('accepts id + position only (everything else defaulted)', () => {
@@ -55,6 +59,31 @@ describe('createTreeToolInputSchema', () => {
     expect(badType.success).toBe(false);
     const badHeight = createTreeToolInputSchema.safeParse({
       id: 't',
+      position: [0, 0, 0],
+      height: -1,
+    });
+    expect(badHeight.success).toBe(false);
+  });
+});
+
+describe('createCharacterToolInputSchema', () => {
+  it('accepts a minimal valid input', () => {
+    const parsed = createCharacterToolInputSchema.safeParse({
+      id: 'char-01',
+      position: [0, 0, 2],
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it('rejects unknown build and bad height', () => {
+    const badBuild = createCharacterToolInputSchema.safeParse({
+      id: 'c',
+      position: [0, 0, 0],
+      build: 'round',
+    });
+    expect(badBuild.success).toBe(false);
+    const badHeight = createCharacterToolInputSchema.safeParse({
+      id: 'c',
       position: [0, 0, 0],
       height: -1,
     });

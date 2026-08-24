@@ -65,3 +65,17 @@ export const createTreeToolInputSchema = z.object({
   canopyColor: z.string().optional(),
 });
 export type CreateTreeToolInput = z.infer<typeof createTreeToolInputSchema>;
+
+export const createCharacterToolInputSchema = z.object({
+  id: z.string(),
+  position: z.tuple([z.number(), z.number(), z.number()]),
+  /** Total height in meters; default 1.7, clamped to [0.5, 3] in the template. */
+  height: z.number().positive().optional(),
+  /** Default "regular". */
+  build: z.enum(['slim', 'regular', 'stocky']).optional(),
+  skinColor: z.string().optional(),
+  shirtColor: z.string().optional(),
+  pantsColor: z.string().optional(),
+  hairColor: z.string().optional(),
+});
+export type CreateCharacterToolInput = z.infer<typeof createCharacterToolInputSchema>;
