@@ -1,6 +1,8 @@
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  /** Data-URL gambar (opsional) — dipetakan adapter yang mendukung multimodal. */
+  images?: string[];
 }
 
 export interface ToolCall {

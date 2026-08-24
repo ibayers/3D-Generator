@@ -12,6 +12,8 @@ export interface RunWithRetryOptions {
   adapter: LLMAdapter;
   systemPrompt: string;
   userPrompt: string;
+  /** Data-URL images attached to the FIRST user message (vision providers). */
+  userImages?: string[];
   tools: ToolDefinition[];
   applyToolCall: ApplyToolCall;
   maxRetries: number;
@@ -34,7 +36,7 @@ export async function runWithRetry(
 ): Promise<RunResult> {
   const maxToolRounds = opts.maxToolRounds ?? DEFAULT_MAX_TOOL_ROUNDS;
   const messages: ChatMessage[] = [
-    { role: "user", content: opts.userPrompt },
+    { role: "user", content: opts.userPrompt, images: opts.userImages },
   ];
   const assistantMessages: ChatMessage[] = [];
   let retries = 0;
