@@ -63,7 +63,7 @@ describe.skipIf(!RUN)(`live tool-selection eval (${RUN ? PROVIDER : "skipped"})`
     );
   }
 
-  it("summary: accuracy >= 0.75 (6 of 8)", () => {
+  it("summary: accuracy >= 0.75 (7 of 9)", () => {
     const s = score(results);
     console.table(
       results.map((r) => ({ case: r.caseId, pass: r.pass ? "PASS" : "FAIL", got: r.gotTool ?? r.reason })),

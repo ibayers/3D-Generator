@@ -96,6 +96,10 @@ const LAYER2_TOOLS = [
     tn: "create_tree(type, height)",
     comp: "= extrude (batang + kanopi)",
   },
+  {
+    tn: "create_character(height, build)",
+    comp: "= extrude (torso + anggota)",
+  },
 ];
 
 const TOOL_TAGS = [
@@ -107,6 +111,7 @@ const TOOL_TAGS = [
   "create_house",
   "create_road",
   "create_tree",
+  "create_character",
 ];
 
 function childGen(node: SceneNode): string {

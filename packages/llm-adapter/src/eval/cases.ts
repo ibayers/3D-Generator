@@ -114,6 +114,12 @@ export const EVAL_CASES: EvalCase[] = [
     expectedTool: "extrude",
     expectArgs: (input) => Array.isArray(input.shape) && input.shape.length >= 3,
   },
+  {
+    id: "character-170cm",
+    prompt: "Buat karakter pria setinggi 170 cm berbaju biru",
+    expectedTool: "create_character",
+    expectArgs: (input) => input.height === 1.7,
+  },
 ];
 
 export function buildUserMessage(c: EvalCase): string {

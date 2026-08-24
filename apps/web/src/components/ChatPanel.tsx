@@ -29,6 +29,7 @@ const STARTER_CHIPS = [
   "Buat jalan sepanjang 8 meter",
   "Ubah material objek pertama jadi hijau",
   "Buat pohon pinus setinggi 5 meter",
+  "Buat karakter pria setinggi 170 cm",
 ];
 
 function paramValue(v: unknown): string {

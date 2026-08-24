@@ -10,10 +10,10 @@ const tc = (name: string, input: Record<string, unknown>): ToolCall => ({
 });
 
 describe("EVAL_CASES", () => {
-  it("has 8 cases with unique ids and non-empty prompts", () => {
-    expect(EVAL_CASES).toHaveLength(8);
+  it("has 9 cases with unique ids and non-empty prompts", () => {
+    expect(EVAL_CASES).toHaveLength(9);
     const ids = EVAL_CASES.map((c) => c.id);
-    expect(new Set(ids).size).toBe(8);
+    expect(new Set(ids).size).toBe(9);
     for (const c of EVAL_CASES) expect(c.prompt.length).toBeGreaterThan(0);
   });
 
@@ -27,6 +27,7 @@ describe("EVAL_CASES", () => {
       "create_house",
       "create_road",
       "create_tree",
+      "create_character",
     ];
     for (const c of EVAL_CASES) expect(known).toContain(c.expectedTool);
   });
