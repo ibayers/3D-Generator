@@ -115,6 +115,10 @@ describe('create_character', () => {
     expect(second.ok).toBe(true);
     if (!second.ok) return;
     expect(second.scene.nodes).toHaveLength(1);
+    // replacement carried the NEW variant: stocky torso (0.26h) is wider than
+    // regular (0.20h) at the same clamped height.
+    const shape = second.scene.nodes[0]!.parameters.shape as [number, number][];
+    expect(shape[1]![0]! - shape[0]![0]!).toBeCloseTo(1.7 * 0.26, 5);
   });
 
   it('rejects invalid build with INVALID_INPUT', () => {
