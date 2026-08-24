@@ -3,6 +3,8 @@ export * from "./tools";
 export * from "./defaults";
 export * from "./claude";
 export * from "./glm";
+export * from "./glmVision";
+export * from "./openaiCompat";
 export * from "./n9router";
 export * from "./orchestrator";
 export * from "./templates";
