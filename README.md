@@ -13,9 +13,9 @@ prompt → LLM (tool_call JSON) → Zod validation → Tool Executor → Scene G
 ```
 
 - **Layer 1 — primitif:** `extrude`, `boolean`, `array`, `transform`, `set_material`
-- **Layer 2 — template komposisi:** `create_house`, `create_road`, `create_tree` — dibangun terlihat dari primitif Layer 1, bukan mesh ajaib
+- **Layer 2 — template komposisi:** `create_house`, `create_road`, `create_tree`, `create_character` — dibangun terlihat dari primitif Layer 1, bukan mesh ajaib
 - **Undo/history:** full-snapshot per aksi; edit manual (hapus node) dan edit prompt masuk ke stack yang sama (Ctrl+Z / Ctrl+Shift+Z)
-- **Provider:** Claude (Anthropic SDK), GLM (OpenAI-compat), 9Router (proxy lokal) — satu antarmuka `LLMAdapter`. API key disimpan di browser, panggilan langsung client → provider.
+- **Provider:** Claude (Anthropic SDK), GLM (OpenAI-compat), 9Router (proxy lokal), GLM Vision (glm-4.5v, menerima gambar → `create_character` stilasi low-poly) — satu antarmuka `LLMAdapter`. API key disimpan di browser, panggilan langsung client → provider.
 
 ## Monorepo
 
