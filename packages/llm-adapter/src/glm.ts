@@ -1,4 +1,4 @@
-import { createOpenAICompatAdapter } from "./openaiCompat";
+import { createOpenAICompatAdapter, zaiBaseURL } from "./openaiCompat";
 import type { LLMAdapter } from "./types";
 import type { ToolDefinition } from "./tools";
 
@@ -20,7 +20,8 @@ const GLM_CODING_PLAN_BASE_URL = "https://api.z.ai/api/coding/paas/v4/";
 export function createGLMAdapter(opts: GLMAdapterOptions): LLMAdapter {
   return createOpenAICompatAdapter({
     ...opts,
-    baseURL: opts.baseURL ?? GLM_CODING_PLAN_BASE_URL,
+    // Browser: same-origin Next rewrite (z.ai has no CORS). Node: direct.
+    baseURL: opts.baseURL ?? zaiBaseURL("/api/zai-coding/", GLM_CODING_PLAN_BASE_URL),
     label: "GLM",
   });
 }

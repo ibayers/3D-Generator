@@ -27,6 +27,15 @@ const FINISH_REASON_MAP: Record<string, string> = {
   length: "max_tokens",
 };
 
+/** api.z.ai ships no CORS headers — in the browser, route through the
+ * same-origin Next rewrite proxy (apps/web/next.config.ts); under node
+ * (eval harness) hit the endpoint directly. */
+export function zaiBaseURL(proxyPath: string, direct: string): string {
+  return typeof window === "undefined"
+    ? direct
+    : new URL(proxyPath, window.location.origin).toString();
+}
+
 function toOpenAITools(tools: ToolDefinition[]): OpenAITool[] {
   return tools.map((t) => ({
     type: "function",

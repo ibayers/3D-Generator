@@ -1,4 +1,4 @@
-import { createOpenAICompatAdapter } from "./openaiCompat";
+import { createOpenAICompatAdapter, zaiBaseURL } from "./openaiCompat";
 import type { LLMAdapter } from "./types";
 import type { ToolDefinition } from "./tools";
 
@@ -18,7 +18,8 @@ const GLM_STANDARD_BASE_URL = "https://api.z.ai/api/paas/v4/";
 export function createGLMVisionAdapter(opts: GLMVisionAdapterOptions): LLMAdapter {
   return createOpenAICompatAdapter({
     ...opts,
-    baseURL: opts.baseURL ?? GLM_STANDARD_BASE_URL,
+    // Browser: same-origin Next rewrite (z.ai has no CORS). Node: direct.
+    baseURL: opts.baseURL ?? zaiBaseURL("/api/zai-standard/", GLM_STANDARD_BASE_URL),
     label: "GLM Vision",
   });
 }
