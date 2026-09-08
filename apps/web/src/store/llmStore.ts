@@ -18,7 +18,7 @@ export const DEFAULT_MODELS: Record<Provider, string> = {
   claude: 'claude-sonnet-4-6',
   glm: 'glm-4.6',
   n9router: 'glm/glm-5.1',
-  'glm-vision': 'glm-4.6v',
+  'glm-vision': 'glm-5.3-flash',
 };
 
 /** Providers whose adapter maps ChatMessage.images to the wire format. */

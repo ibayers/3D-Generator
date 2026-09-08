@@ -26,16 +26,16 @@ describe("createGLMVisionAdapter", () => {
     __mockCreate.mockReset();
   });
 
-  it("constructs the client against the Z.ai STANDARD endpoint", async () => {
+  it("constructs the client against the Z.ai CODING PLAN endpoint by default", async () => {
     __mockCreate.mockResolvedValueOnce(okResponse);
     const adapter = createGLMVisionAdapter({
       apiKey: "zai-std",
-      model: "glm-4.5v",
+      model: "glm-5.3-flash",
       tools: [],
     });
     await adapter.chat([{ role: "user", content: "hi" }], "s");
     expect(OpenAI).toHaveBeenCalledWith(
-      expect.objectContaining({ apiKey: "zai-std", baseURL: "https://api.z.ai/api/paas/v4/" }),
+      expect.objectContaining({ apiKey: "zai-std", baseURL: "https://api.z.ai/api/coding/paas/v4/" }),
     );
   });
 

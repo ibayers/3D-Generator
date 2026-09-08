@@ -10,16 +10,17 @@ export interface GLMVisionAdapterOptions {
   baseURL?: string;
 }
 
-// Z.ai STANDARD API (pay-as-you-go) — separate billing from the Coding Plan
-// used by glm.ts. Vision models with native function calling (glm-4.6v
-// series; glm-4.5v predates tools support) live here.
-const GLM_STANDARD_BASE_URL = "https://api.z.ai/api/paas/v4/";
+// ponytail: defaults to the CODING PLAN endpoint so subscribers pay nothing —
+// glm-5.3-flash is natively multimodal (image input) AND tools-capable AND
+// included in every plan. Standard endpoint (glm-4.6v, pay-as-you-go) stays
+// available via baseURL override.
+const GLM_CODING_PLAN_BASE_URL = "https://api.z.ai/api/coding/paas/v4/";
 
 export function createGLMVisionAdapter(opts: GLMVisionAdapterOptions): LLMAdapter {
   return createOpenAICompatAdapter({
     ...opts,
     // Browser: same-origin Next rewrite (z.ai has no CORS). Node: direct.
-    baseURL: opts.baseURL ?? zaiBaseURL("/api/zai-standard/", GLM_STANDARD_BASE_URL),
+    baseURL: opts.baseURL ?? zaiBaseURL("/api/zai-coding/", GLM_CODING_PLAN_BASE_URL),
     label: "GLM Vision",
   });
 }

@@ -24,7 +24,7 @@ const PROVIDER = (process.env.EVAL_PROVIDER ?? "claude") as
 const MODEL_DEFAULTS: Record<typeof PROVIDER, string> = {
   claude: "claude-sonnet-4-6",
   glm: "glm-4.6",
-  "glm-vision": "glm-4.6v",
+  "glm-vision": "glm-5.3-flash",
   n9router: "glm/glm-5.1",
 };
 
