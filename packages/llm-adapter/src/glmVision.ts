@@ -11,7 +11,8 @@ export interface GLMVisionAdapterOptions {
 }
 
 // Z.ai STANDARD API (pay-as-you-go) — separate billing from the Coding Plan
-// used by glm.ts. Vision models (glm-4.5v) live here.
+// used by glm.ts. Vision models with native function calling (glm-4.6v
+// series; glm-4.5v predates tools support) live here.
 const GLM_STANDARD_BASE_URL = "https://api.z.ai/api/paas/v4/";
 
 export function createGLMVisionAdapter(opts: GLMVisionAdapterOptions): LLMAdapter {
